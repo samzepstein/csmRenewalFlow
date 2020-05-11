@@ -14,7 +14,7 @@ global class csmRenewalFlow implements
             [SELECT ID, Contract_End_Date_Count__c, Max_Contract_End__c,
             BillingStreet, BillingCity, BillingState, Most_Recent_Channel__c,
             Most_Recent_Reseller__c, Most_Recent_Admin__c FROM Account 
-            WHERE Contract_End_Date_Count__c = 1 AND Max_Contract_End__c = :dte]
+            WHERE Contract_End_Date_Count__c = 1 AND Max_Contract_End__c = :dte];
         );
         
 
