@@ -1,23 +1,25 @@
-csmRenewalFlow
-
 // 1.Create a new class that implements Batch apex.
 global class csmRenewalFlow implements 
-	Database.Batchable, Database.Stateful {
+Database.Batchable, Database.Stateful {
+    global Set<Id> multipleRenewOpps; 
+    global csmRenewalFlow(){
+       multipleRenewOpps = new Set<Id>();
+    }
         
-    // 2.Declare the start method to return a list of accounts.  			
-    // N should be formula field to reference # of days before the contract expiration that we want to create the opportunity
-    Date dte = System.today() + 180;
+        // 2.Declare the start method to return a list of accounts.  			
+        // N should be formula field to reference # of days before the contract expiration that we want to create the opportunity
     global Database.QueryLocator start(Database.BatchableContext bc) {
+        Date dte = System.today() + 180;
         return Database.getQueryLocator(
             // 3.Write a SOQL query to return a list of accounts
             // Date dte = System.today() + 90; ---> substitute TODAY + N for :dte
             [SELECT ID, Contract_End_Date_Count__c, Max_Contract_End__c,
-            BillingStreet, BillingCity, BillingState, Most_Recent_Channel__c,
-            Most_Recent_Reseller__c, Most_Recent_Admin__c FROM Account 
-            WHERE Contract_End_Date_Count__c = 1 AND Max_Contract_End__c = :dte];
+             BillingStreet, BillingCity, BillingState, Most_Recent_Channel__c,
+             Most_Recent_Reseller__c, Most_Recent_Admin__c FROM Account 
+             WHERE Contract_End_Date_Count__c = 1 AND Max_Contract_End__c = :dte]
         );
         
-
+        
     }
     // 4.Declare the execute method to return void and take in a BatchableContext as well as a list of accounts.
     global void execute(Database.BatchableContext bc, List<Account> scope){
@@ -47,10 +49,10 @@ global class csmRenewalFlow implements
         //{'1234' : [c1]}
         
         //{'1234' : [c1, c2]}
-       
         
-		//{'1234' : [c1, c2, c3], '6789' : [c4]}
-
+        
+        //{'1234' : [c1, c2, c3], '6789' : [c4]}
+        
         
         
         //['1234','6789']
@@ -60,33 +62,32 @@ global class csmRenewalFlow implements
         // B. One pre-existing renewal opp - give it to the others
         // C. Multiple pre-existing renewal opps - flag it
         // if there is a renewal opp on a contract, take its id and put it on the other contracts for the account??????
-		List<Id> multipleRenewOpps = new List<Id>();
-            
+        
         for (Id accountId : acctContractMap.keySet()) {
-                        
+            
             //why do we get account id and not just set it to the acctContractMap?
             //what is inside of the contList afer this association?
             List<Contract> contList = acctContractMap.get(accountId);
             List<Contract> contNullOpps = new List<Contract>();
-			Id oppId;    
-
-           
-             //[c1 - Null, c2 - RO1, c3 - RO2]
+            Id oppId;    
+            
+            
+            //[c1 - Null, c2 - RO1, c3 - RO2]
             for (Contract cont : contList){
                 // A. No pre-existing renewal opps - create one
                 if(cont.SBQQ__RenewalOpportunity__c == null){
                     contNullOpps.add(cont);
                 }
                 else{
-        			// B. One pre-existing renewal opp - give it to the others
-        			// set oppId static variable to  the Id of the opportunity on the SBQQ__RenewalOpportunity__c  field on the Contract
+                    // B. One pre-existing renewal opp - give it to the others
+                    // set oppId static variable to  the Id of the opportunity on the SBQQ__RenewalOpportunity__c  field on the Contract
                     if(oppId == null){
                         oppId = cont.SBQQ__RenewalOpportunity__c;
                         //iterate to next item  in list
                         continue;
                     } 
-        			// B. One pre-existing renewal opp - give it to the others
-        			// if oppId static  variable equals opp Id on SBQQ__RenewalOpportunity__c  field on the Contract
+                    // B. One pre-existing renewal opp - give it to the others
+                    // if oppId static  variable equals opp Id on SBQQ__RenewalOpportunity__c  field on the Contract
                     else if(oppId == cont.SBQQ__RenewalOpportunity__c){
                         //iterate to next item  in list
                         continue;
@@ -97,20 +98,12 @@ global class csmRenewalFlow implements
                         //leave for loop and go to next process
                         break;
                     }
-				}
-               
-                // handle multiple opps for one account
-                if(multipleRenewOpps.size() > 0 ){
-                    
-                     //send email to opportuity owner
-                    for (id renewOppId : multipleRenewOpps);
-                    Messaging.SingleEmailMessage mail = new Messaging.SingleEmailMessage();
-                    String[] toAddresses = new String[] {opportunity owner email}; 
-                 
-                    
-                  
-                    
                 }
+                
+  
+                        
+                        
+                        }
                 if(oppId != null){
                     for(Contract contr : contList){
                         contr.SBQQ__RenewalOpportunity__c = oppId;
@@ -120,59 +113,73 @@ global class csmRenewalFlow implements
                 // 8. One of the fields is SBQQ__RenewedContract__c. 
                 // 8. This should be one of the contracts that were queried above.
                 if(oppId == null){
-                    	// Create a renewal opp 
-                        Opportunity renewalOpp = new Opportunity();
-            			renewalOpp.Name = 'Renewal Opp Name';
-                    	renewalOpp.Type = 'Renewal';
-                        renewalOpp.CloseDate = date.today() + 90;
-            			renewalOpp.SBQQ__RenewedContract__c = cont.id;
-                            
-            			// 9. Add to a list of opportunities
-            			renewalOppList.add(renewalOpp);
+                    // Create a renewal opp 
+                    Opportunity renewalOpp = new Opportunity();
+                    renewalOpp.Name = 'Renewal Opp Name';
+                    renewalOpp.Type = 'Renewal';
+                    renewalOpp.CloseDate = date.today() + 90;
+                    renewalOpp.SBQQ__RenewedContract__c = cont.id;
                     
-                // 10. Insert the opportunities
-        		insert renewalOppList;
-                    	
-              
-                  	// 11. For each contract, update SBQQ__RenewalOpportunity with its new renewal opp Id.
-                  	renewalId = renewalOpp.Id;
+                    // 9. Add to a list of opportunities
+                    renewalOppList.add(renewalOpp);
+                    
+                    // 10. Insert the opportunities
+                    insert renewalOppList;
+                    
+                    
+                    // 11. For each contract, update SBQQ__RenewalOpportunity with its new renewal opp Id.
+                    renewalId = renewalOpp.Id;
                     for (Contract cont : contNullOpps){
                         cont.SBQQ__RenewalOpportunity__c = renewalId;
-                      
-                    // 12. Update all contracts
-                    update contNullOpps;
+                        
+                        // 12. Update all contracts
+                        update contNullOpps;
                     }
-                    	
+                    
                 }
-            		
+                
+                
+                
+                
+                
+                
+            } 
             
-            		    
-
-       
-
-                } 
-
         }
         
-    // 13. Finish method will call Database.executeBatch(new RenewalQuoteGenerator());
-   	global void finish(Database.BatchableContext bc){
-        
-        
-   // Get the ID of the AsyncApexJob representing this batch job
-   // from Database.BatchableContext.
-   // Query the AsyncApexJob object to retrieve the current job's information.
-       AsyncApexJob a = [SELECT Id, Status, NumberOfErrors, JobItemsProcessed,
-          TotalJobItems, CreatedBy.Email
-          FROM AsyncApexJob WHERE Id =
-          :bc.getJobId()];
-       // Send an email to the Apex job's submitter notifying of job completion.
-       Messaging.SingleEmailMessage mail = new Messaging.SingleEmailMessage();
-       String[] toAddresses = new String[] {a.CreatedBy.Email};
-       mail.setToAddresses(toAddresses);
-       mail.setSubject('Apex Sharing Recalculation ' + a.Status);
-       mail.setPlainTextBody
-       ('The batch Apex job processed ' + a.TotalJobItems +
-       ' batches with '+ a.NumberOfErrors + ' failures.');
-       Messaging.sendEmail(new Messaging.SingleEmailMessage[] { mail });
+        // 13. Finish method will call Database.executeBatch(new RenewalQuoteGenerator());
+        global void finish(Database.BatchableContext bc){
+                 
+				
+            	// handle multiple opps for one account
+                // use State to track
+                if(multipleRenewOpps.size() > 0 ){
+                    
+                    //send email to opportuity owner
+                    for (id renewOppId : multipleRenewOpps);
+                    Messaging.SingleEmailMessage mail = new Messaging.SingleEmailMessage();
+                    String[] toAddresses = new String[] {opportunity owner email}; 
+                        //provide link to account
+                        //send to account owner + cc sales ops
+                        
+            
+            
+            
+            // Get the ID of the AsyncApexJob representing this batch job
+            // from Database.BatchableContext.
+            // Query the AsyncApexJob object to retrieve the current job's information.
+            AsyncApexJob a = [SELECT Id, Status, NumberOfErrors, JobItemsProcessed,
+                              TotalJobItems, CreatedBy.Email
+                              FROM AsyncApexJob WHERE Id =
+                              :bc.getJobId()];
+            // Send an email to the Apex job's submitter notifying of job completion.
+            Messaging.SingleEmailMessage mail = new Messaging.SingleEmailMessage();
+            String[] toAddresses = new String[] {a.CreatedBy.Email};
+                mail.setToAddresses(toAddresses);
+            mail.setSubject('Apex Sharing Recalculation ' + a.Status);
+            mail.setPlainTextBody
+                ('The batch Apex job processed ' + a.TotalJobItems +
+                 ' batches with '+ a.NumberOfErrors + ' failures.');
+            Messaging.sendEmail(new Messaging.SingleEmailMessage[] { mail });
+        }
     }
-}
