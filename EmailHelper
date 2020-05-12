@@ -1,6 +1,6 @@
 public class EmailHelper {
     
-    public static Map<Id, String> setAccountLinkHtml(Map<Id, Set<Account>> ownerRecordMap, String templateName){
+    public static Map<Id, String> setRecordLinkHtml(Map<Id, Set<sObject>> ownerRecordMap, String templateName){
         
         EmailTemplate temp = [SELECT Id,  HtmlValue FROM EmailTemplate WHERE DeveloperName = :templateName];
         
@@ -9,17 +9,18 @@ public class EmailHelper {
             
         for (id ownerId : ownerRecordMap.keySet()){
             
-            Set<Account> accts = OwnerRecordMap.get(ownerId);
+            Set<sObject> records = OwnerRecordMap.get(ownerId);
             
-            //used to add account links
-            Set<String> acctLinks = new Set<String>();
-            for (Account acct : accts){
-                acctLinks.add('<a href="http://goguardian.my.salesforce.com/'+acct.Id+'">'+acct.Name+'</a><br/>');
-            
+            Set<String> recLinks = new Set<String>();
+            for (sObject rec : records){
+                String recName = (String)rec.get('Name');
+                String recId = (String)rec.get('Id');
+                recLinks.add('<a href="http://goguardian.my.salesforce.com/'+recId+'">'+recName+'</a><br/>');
         	}
+            
         String html = temp.HtmlValue;
-        String acctLinksStr = String.join(new List<String>(acctLinks), '');
-        html = html.replace('{{AccountLinks}}', acctLinksStr);
+        String recLinksStr = String.join(new List<String>(recLinks), '');
+        html = html.replace('{{RecordLinks}}', recLinksStr);
         ownerHtmlMap.put(ownerId, html);
             
     	}
