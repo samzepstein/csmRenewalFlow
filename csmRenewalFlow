@@ -1,10 +1,11 @@
 // 1.Create a new class that implements Batch apex.
 global class csmRenewalFlow implements 
-Database.Batchable, Database.Stateful {
-    global Set<Id> multipleRenewOpps; 
+Database.Batchable<SObject>, Database.Stateful {
+    global Map<Id, Set<Id>> multipleRenewOpps; 
     global csmRenewalFlow(){
-       multipleRenewOpps = new Set<Id>();
+       multipleRenewOpps = new Map<Id, Set<Id>>();
     }
+
         
         // 2.Declare the start method to return a list of accounts.  			
         // N should be formula field to reference # of days before the contract expiration that we want to create the opportunity
@@ -28,7 +29,7 @@ Database.Batchable, Database.Stateful {
         List <Opportunity> renewalOppList = new List<Opportunity>();
         // 7.Query for contracts where do_not_renew__c = false and end date is today + n days and AccountId is in the account map key set.
         Date dte2 = System.today() + 90;
-        List<Contract> contracts = [SELECT ID, ContractNumber, SBQQ__RenewalOpportunity__c, EndDate, AccountId 
+        List<Contract> contracts = [SELECT ID, ContractNumber, SBQQ__RenewalOpportunity__c, EndDate, AccountId, Account.OwnerId 
                                     FROM Contract 
                                     WHERE Do_Not_Renew__c = FALSE AND AccountId IN :accountMap.keySet() AND EndDate = :dte2];
         
@@ -95,6 +96,9 @@ Database.Batchable, Database.Stateful {
                     // C. Multiple pre-existing renewal opps - flag it
                     else if(oppId != cont.SBQQ__RenewalOpportunity__c && oppId != Null){
                         multipleRenewOpps.add(cont.AccountId);
+                        Set<Id> accountIds = multipleRenewOpps.containsKey(cont.Account.OwnerId) ? multipleRenewOpps.get(cont.Account.OwnerId) : new Set<Id>();
+                        accountIds.add(cont.AccountId);
+                     `  multipleRenewOpps.put(cont.Account.OwnerId, accountIds);
                         //leave for loop and go to next process
                         break;
                     }
@@ -153,14 +157,24 @@ Database.Batchable, Database.Stateful {
 				
             	// handle multiple opps for one account
                 // use State to track
-                if(multipleRenewOpps.size() > 0 ){
+                if (!multipleRenewOpps.isEmpty()){
+                    List <Messaging.SingleEmailMessage> messages = new List <Messaging.SingleEmailMessage>();
+                    Map<Id, String> ownerHtmlMap = EmailHelper.setRecordLinkHtml(multipleRenewOpps, 'Multiple Renew Opps');
+                    for (id ownerId : ownerHtmlMap.keySet()) {
+                        Messaging.SingleEmailMessage msg =  new Messaging.SingleEmailMessage();
+                        msg.setHtmlBody(ownerHtmlMap.get(ownerId));
+                        messages.add(msg);
                     
-                    //send email to opportuity owner
-                    for (id renewOppId : multipleRenewOpps);
-                    Messaging.SingleEmailMessage mail = new Messaging.SingleEmailMessage();
-                    String[] toAddresses = new String[] {opportunity owner email}; 
-                        //provide link to account
-                        //send to account owner + cc sales ops
+                        
+                        
+                    }
+                    
+                   messaging.sendEmail(messages);
+                    
+                }
+                    
+                    
+                
                         
             
             
@@ -183,3 +197,4 @@ Database.Batchable, Database.Stateful {
             Messaging.sendEmail(new Messaging.SingleEmailMessage[] { mail });
         }
     }
+    
