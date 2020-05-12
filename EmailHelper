@@ -1,0 +1,29 @@
+public class EmailHelper {
+    
+    public static Map<Id, String> setRecordLinkHtml(Map<Id, Set<Account>> ownerRecordMap, String templateName){
+        
+        EmailTemplate temp = [SELECT Id,  HtmlValue FROM EmailTemplate WHERE DeveloperName = :templateName];
+        
+        
+        Map<Id, String> ownerHtmlMap = new Map<Id, String>(); 
+            
+        for (id ownerId : ownerRecordMap.keySet()){
+            
+            Set<Account> accts = OwnerRecordMap.get(ownerId);
+            
+            //used to add account links
+            Set<String> acctLinks = new Set<String>();
+            for (Account acct : accts){
+                acctLinks.add('<a href="http://goguardian.my.salesforce.com/'+acct.Id+'">'+acct.Name+'</a><br/>');
+            
+        	}
+        String html = temp.HtmlValue;
+        String acctLinksStr = String.join(new List<String>(acctLinks), '');
+        html = html.replace('{{AccountLinks}}', acctLinksStr);
+        ownerHtmlMap.put(ownerId, html);
+            
+    	}
+    	return ownerHtmlMap;
+        
+    }
+}
