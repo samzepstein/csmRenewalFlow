@@ -1,6 +1,12 @@
 // 1. Create a new class that implements batch apex called BatchRenewalQuote
-global class BatchRenewalQuote {
+global class BatchRenewalQuote implements 
+Database.Batchable<SObject>, Database.Stateful {
     
+    global Set<Id> quoteIds; 
+    global BatchRenewalQuote(){
+    	quoteIds = new Set<Id>();
+
+    }
     // 2. Declare as a class variable a list of Ids called oppIds
    	List<Id> oppIds = new List<Id>();
     
@@ -52,4 +58,13 @@ global class BatchRenewalQuote {
            
        
    }
+   global void finish(Database.BatchableContext bc){
+       
+       
+       
+       
+       
+       
+   }
+       
 }
