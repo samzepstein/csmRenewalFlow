@@ -1,6 +1,6 @@
 public class EmailHelper {
     
-    public static Map<Id, String> setRecordLinkHtml(Map<Id, Set<Account>> ownerRecordMap, String templateName){
+    public static Map<Id, String> setAccountLinkHtml(Map<Id, Set<Account>> ownerRecordMap, String templateName){
         
         EmailTemplate temp = [SELECT Id,  HtmlValue FROM EmailTemplate WHERE DeveloperName = :templateName];
         
