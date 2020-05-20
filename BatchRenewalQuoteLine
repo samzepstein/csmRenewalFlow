@@ -1,0 +1,20 @@
+global class BatchRenewalQuoteLine implements 
+Database.Batchable<SObject>, Database.Stateful {
+    
+    global List<Id> quoteIds; 
+    global Integer daysBeforeRenew;
+    global BatchRenewalQuote(){
+    	quoteIds = new Set<Id>();
+        daysBeforeRenew = 0;
+    
+    global Database.QueryLocator start(Database.BatchableContext bc) {
+        return Database.getQueryLocator(
+            [SELECT Id, SBQQ__Account__c 
+             FROM SBQQ__Quote__c]
+            
+        );
+        
+    }   
+    
+    
+}
