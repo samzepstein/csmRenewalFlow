@@ -1,0 +1,48 @@
+@isTest
+private class csmRenewalFlowTest {
+    
+    @isTest static void createRenewalOppDirect() {
+		
+        
+        Opportunity[] oppListDirect = new List();
+        for (Integer i=0;i<200;i++) {
+            Opportunity opp = new Opportunity();
+            opp.Name = String.valueOf(closeDate.year()) + ' | ' + acct.Name + ' | Renewal Opportunity';
+            opp.Type = 'Renewal';
+            opp.CloseDate = closeDate;
+            opp.SBQQ__RenewedContract__c = contractId;
+            opp.channel = 'Direct';
+            
+            oppListDirect.add(opp);
+        }
+        insert oppListDirect;
+        
+    }
+    
+     @isTest static void createRenewalOppIndirect() {
+		
+        Opportunity[] oppListIndirect = new List();
+        for (Integer i=0;i<200;i++) {
+            Opportunity opp2 = new Opportunity();
+            opp2.Name = String.valueOf(closeDate.year()) + ' | ' + acct.Name + ' | Renewal Opportunity';
+            opp2.Type = 'Renewal';
+            opp2.CloseDate = closeDate;
+            opp2.SBQQ__RenewedContract__c = contractId;
+            opp2.channel ='Indirect'
+            
+            oppListIndirect.add(opp2);
+        }
+        insert oppListIndirect;        
+
+    }
+    
+    @isTest static void createContract() {
+        
+        Contract cont = new Contract();
+        cont.SBQQ__RenewalOpportunity__c = '0064N00000YGup9QAD';
+        
+        
+    }
+    	
+
+}
