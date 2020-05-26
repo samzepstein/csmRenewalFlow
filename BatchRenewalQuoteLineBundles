@@ -1,0 +1,25 @@
+global class BatchRenewalQuoteLineBundles implements 
+Database.Batchable<SObject>, Database.Stateful {
+
+    
+    
+        global Database.QueryLocator start(Database.BatchableContext bc) {
+        return Database.getQueryLocator(
+				[Select Id,	SBQQ__ConfiguredSKU__c, SBQQ__OptionalSKU__c, SBQQ__Discount__c
+                 FROM SBQQ__ProductOption__c]
+            
+            );
+            
+        }
+    
+       global void execute(Database.BatchableContext bc, List<SBQQ__QuoteLine__c> scope){
+           
+           for (SBQQ__QuoteLine__c quoteLine : scope){
+               
+              
+              }
+           
+           
+       }
+            
+}
