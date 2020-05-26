@@ -30,11 +30,22 @@ Database.Batchable<SObject>, Database.Stateful {
            
        }
            
-           
-       List<AggregateResult> groupedResults = [SELECT Id, SBQQ__EndDate__c, 
+       //should I make another search query to relate to?
+       
+       List<AggregateResult> groupedResults = [SELECT Id, Name, StageName, Returned_or_CM__c, AccountId 
+                                               ((SELECT Id, SBQQ__EndDate__c, SBQQ__RequiredBy__c 
                                                FROM SBQQ__QuoteLine__c 
-                                               WHERE SBQQ__EndDate__c = TODAY + :daysBeforeRenew 
-                                               AND SBQQ__Quote__c.]
+                                               WHERE SBQQ__EndDate__c = TODAY + :daysBeforeRenew
+                                               AND SBQQ__RequiredBy__c - NULL
+                                               GROUP BY Product2Id) 
+                                               FROM SBQQ__Quote__c WHERE SBQQ__Status__c = 'Accepted'
+                                               GROUP BY AccountId)                                                       
+                                               FROM Opportunity 
+                                               WHERE StageName = 'Purchase' 
+                                               AND Returned_or_CM__c = FALSE 
+                                               AND AccountId IN :list]
+                                                
+                                               
            
           
        for (quoteLine in List<AggregateResult>){
