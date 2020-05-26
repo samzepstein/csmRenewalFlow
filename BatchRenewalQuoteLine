@@ -3,18 +3,55 @@ Database.Batchable<SObject>, Database.Stateful {
     
     global List<Id> quoteIds; 
     global Integer daysBeforeRenew;
+    List<SBQQ__QuoteLine__c> bundleQuoteLines = new List<SBQQ__QuoteLine__c>();
+    
     global BatchRenewalQuote(){
     	quoteIds = new Set<Id>();
         daysBeforeRenew = 0;
+    }
     
     global Database.QueryLocator start(Database.BatchableContext bc) {
         return Database.getQueryLocator(
             [SELECT Id, SBQQ__Account__c 
-             FROM SBQQ__Quote__c]
+             FROM SBQQ__Quote__c  WHERE Id in quoteIds]
             
         );
         
     }   
     
     
+   global void execute(Database.BatchableContext bc, List<Opportunity> scope){
+	
+       List<SBQQ__QuoteLine__c> quoteLinesList = new List<SBQQ__QuoteLine__c>();
+       
+       Map<ID, SBQQ__Quote__c> quoteMap = new Map<ID, SBQQ__Quote__c>();
+       
+       for (SBQQ__Quote__c quote : scope){
+           
+       }
+           
+           
+       List<AggregateResult> groupedResults = [SELECT Id, SBQQ__EndDate__c, 
+                                               FROM SBQQ__QuoteLine__c 
+                                               WHERE SBQQ__EndDate__c = TODAY + :daysBeforeRenew 
+                                               AND SBQQ__Quote__c.]
+           
+          
+       for (quoteLine in List<AggregateResult>){
+               
+           
+      
+           quoteLinesList.add(quoteLine);
+          
+           }
+       
+       
+       }
+       
+       
+       
+   
+        
+        
+        
 }
