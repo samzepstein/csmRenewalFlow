@@ -2,13 +2,34 @@
 private class BatchRenewalQuoteTest {
     
     
-      @isTest static void createOpportunity() {  
+      @isTest static void createDirectOpportunity() {  
           
           Opportunity opp = new Opportunity;
+          opp.Name = 'Test';
+          opp.CloseDate  =  Date.today();
+          opp.StageName = 'Prospecting';
+          
           opp.Channel__c = 'Direct';
+          
+          insert opp;
           
           
       }
+    
+          @isTest static void createIndirectOpportunity() {  
+          
+          Opportunity opp2 = new Opportunity;
+              
+          opp2.Name = 'Test';
+          opp2.CloseDate  =  Date.today();
+          opp2.StageName = 'Prospecting';
+          
+          opp2.Channel__c = 'Indirect';
+          
+          insert opp2;
+          
+      }
+
     
       @isTest static void createQuoteDirect() {     
         
