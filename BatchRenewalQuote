@@ -2,17 +2,17 @@
 global class BatchRenewalQuote implements 
 Database.Batchable<SObject>, Database.Stateful {
     
-    global Set<Id> quoteIds; 
-    global BatchRenewalQuote(){
-    	quoteIds = new Set<Id>();
+    Set<Id> quoteIds = new Set<Id>();
 
-    }
     // 2. Declare as a class variable a list of Ids called oppIds
    	List<Id> oppIds = new List<Id>();
+    Integer daysBeforeRenew;
     
     // 3. Create a constructor to set the value of oppIds when an instance of the BatchRenewalQuote is created 
-	global BatchRenewalQuote(List<Id> oppIds){
+	global BatchRenewalQuote(List<Id> oppIds, Integer daysBeforeRenew){
             this.oppIds = oppIds;
+        	this.daysBeforeRenew = daysBeforeRenew;
+        		
     }
           
    // 4. Within the start method, query for the opportunities that have the Ids from oppIds 
@@ -55,12 +55,20 @@ Database.Batchable<SObject>, Database.Stateful {
        
       // 9. After a quote has been created for each opp, insert the list          
       insert quoteList;
+       
+      //pull out IDs to be inserted in batch renewal quote line
+
+      Map <ID, SBQQ__Quote__c> quoteIdList = new Map <ID, SBQQ__Quote__c>(quoteList);
+       
+      quoteIds = quoteIdList.keySet();
+      
+     
            
        
    }
    global void finish(Database.BatchableContext bc){
        
-       
+       Database.executeBatch(new BatchRenewalQuoteLine(quoteIds, daysBeforeRenew));
        
        
        
