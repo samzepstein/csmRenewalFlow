@@ -1,15 +1,22 @@
+// 1. Create a new class that implements batch apex called BatchRenewalQuoteLine
+
 global class BatchRenewalQuoteLine implements 
 Database.Batchable<SObject>, Database.Stateful {
     
+    // 2. Declare as instance variables a list of Ids called quoteIDs, an integer called daysBeforeRenew, and a List of quotelines called bundleQuoteLines
     global List<Id> quoteIds; 
     global Integer daysBeforeRenew;
     List<SBQQ__QuoteLine__c> bundleQuoteLines = new List<SBQQ__QuoteLine__c>();
     
+    // 3. Create a constructor to set the value of quoteIDs and daysBeforeRenew when an instance of the BatchRenewalQuote is created. Instantiate the bundle list as an empty list
     global BatchRenewalQuote(){
     	quoteIds = new Set<Id>();
         daysBeforeRenew = 0;
+        bundleQuoteLines = [];
+
     }
-    
+    // 4. Within the start method, query for the quotes (SBQQ__Quote__c) that have the Ids from quoteIDs including the Account (SBQQ__Account__c) in the SELECT clause
+    // 5. Return this list of quotes.
     global Database.QueryLocator start(Database.BatchableContext bc) {
         return Database.getQueryLocator(
             [SELECT Id, SBQQ__Account__c 
@@ -21,48 +28,77 @@ Database.Batchable<SObject>, Database.Stateful {
     
     
    global void execute(Database.BatchableContext bc, List<Opportunity> scope){
-	
+       
+	   // 6. Within the execute method, instantiate an empty list of SBQQ__QuoteLine__c. This is the list of quotelines that we are going to insert at the end of the transaction.
        List<SBQQ__QuoteLine__c> quoteLinesList = new List<SBQQ__QuoteLine__c>();
        
+       // 7. Instantiate a map of ID,Quote
        Map<ID, SBQQ__Quote__c> quoteMap = new Map<ID, SBQQ__Quote__c>();
        
+       // 7. use a for loop to pull out the account Ids from the list of quotes that are in the scope of the execute method. It should be a 1:1 relationship between accounts and quotes.
        for (SBQQ__Quote__c quote : scope){
            
        }
            
-       //should I make another search query to relate to?
+ 
        
-       List<AggregateResult> groupedResults = [SELECT Id, Name, StageName, Returned_or_CM__c, AccountId 
-                                               ((SELECT Id, SBQQ__EndDate__c, SBQQ__RequiredBy__c 
+      
+       
+       List<AggregateResult> aggregateList = [SELECT Id, SBQQ__EndDate__c, SBQQ__RequiredBy__c,Product2Id, SUM(SBQQ__Quantity__c) sum
                                                FROM SBQQ__QuoteLine__c 
                                                WHERE SBQQ__EndDate__c = TODAY + :daysBeforeRenew
-                                               AND SBQQ__RequiredBy__c - NULL
-                                               GROUP BY Product2Id) 
+                                               AND SBQQ__RequiredBy__c = NULL
+                                               GROUP BY Product2Id
                                                FROM SBQQ__Quote__c WHERE SBQQ__Status__c = 'Accepted'
-                                               GROUP BY AccountId)                                                       
+                                               GROUP BY AccountId                                                  
                                                FROM Opportunity 
                                                WHERE StageName = 'Purchase' 
                                                AND Returned_or_CM__c = FALSE 
-                                               AND AccountId IN :list]
+                                               AND AccountId IN :quoteIds]
                                                 
                                                
-           
+	   for(AggregateResult ar : aggregateList) {
           
-       for (quoteLine in List<AggregateResult>){
-               
+           SBQQ__QuoteLine__c quoteLine = new SBQQ__QuoteLine__c();
            
+           quoteLine.SBQQ__Quantity__c = ar.get(SBQQ__Quantity__c);
+           quoteLine.SBQQ__Product__c  = ar.get('Product2Id');
+           quoteLine.SBQQ__Quote__c = 
+           
+           
+         
+           if SBQQ__Bundled__c == FALSE; {
+       
       
-           quoteLinesList.add(quoteLine);
-          
+           	   	quoteLinesList.add(quoteLine);
+              
            }
-       
-       
+           
+           else {
+               
+              	bundleQuoteLines.add(quoteLine);
+              	 
+               
+           }
+          
        }
        
        
+       insert quoteLinesList;
+       }
        
-   
-        
+    
+       global void finish(Database.BatchableContext bc){
+       
+       
+       
+       
+       
+       
+   }
+
+       
+    
         
         
 }
