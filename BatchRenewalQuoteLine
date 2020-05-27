@@ -9,10 +9,10 @@ Database.Batchable<SObject>, Database.Stateful {
     List<SBQQ__QuoteLine__c> bundleQuoteLines = new List<SBQQ__QuoteLine__c>();
     
     // 3. Create a constructor to set the value of quoteIDs and daysBeforeRenew when an instance of the BatchRenewalQuote is created. Instantiate the bundle list as an empty list
-    global BatchRenewalQuote(){
-    	quoteIds = new Set<Id>();
-        daysBeforeRenew = 0;
-        bundleQuoteLines = [];
+    global BatchRenewalQuote(List<Id> quoteIds, Integer daysBeforeRenew, List<SBQQ__QuoteLine__c> bundleQuoteLines){
+        this.quoteIds = quoteIds;
+        this.daysBeforeRenew = daysBeforeRenew;
+        this.bundleQuoteLines = new List<SBQQ__QuoteLine__c>();
 
     }
     // 4. Within the start method, query for the quotes (SBQQ__Quote__c) that have the Ids from quoteIDs including the Account (SBQQ__Account__c) in the SELECT clause
@@ -38,13 +38,18 @@ Database.Batchable<SObject>, Database.Stateful {
        // 7. use a for loop to pull out the account Ids from the list of quotes that are in the scope of the execute method. It should be a 1:1 relationship between accounts and quotes.
        for (SBQQ__Quote__c quote : scope){
            
+            Id acctId = quote.AccountId;
+           
+			List<SBQQ__Quote__c> quotes = quoteMap.containsKey(acctId) ? quoteMap.get(acctId) : new List<SBQQ__Quote__c>();
+           
+           
        }
            
  
        
       
-       
-       List<AggregateResult> aggregateList = [SELECT Id, SBQQ__EndDate__c, SBQQ__RequiredBy__c,Product2Id, SUM(SBQQ__Quantity__c) sum
+       // 8. Query for Quote Lines  that have end dateson the date of today + daysBeforeRenew which 
+       List<AggregateResult> aggregateList = [SELECT Id, SBQQ__EndDate__c, SBQQ__Bundled__c, SBQQ__RequiredBy__c,Product2Id, SUM(SBQQ__Quantity__c) sum
                                                FROM SBQQ__QuoteLine__c 
                                                WHERE SBQQ__EndDate__c = TODAY + :daysBeforeRenew
                                                AND SBQQ__RequiredBy__c = NULL
@@ -56,7 +61,7 @@ Database.Batchable<SObject>, Database.Stateful {
                                                AND Returned_or_CM__c = FALSE 
                                                AND AccountId IN :quoteIds]
                                                 
-                                               
+       // 9. For each entry in the AggregateResult list, create a new quoteline with the combined quantity                                       
 	   for(AggregateResult ar : aggregateList) {
           
            SBQQ__QuoteLine__c quoteLine = new SBQQ__QuoteLine__c();
@@ -69,11 +74,12 @@ Database.Batchable<SObject>, Database.Stateful {
          
            if SBQQ__Bundled__c == FALSE; {
        
-      
+      			// 9b. Add the quoteline to a list to be ilnserted
            	   	quoteLinesList.add(quoteLine);
               
            }
            
+           // 9c. If the quoteline is a bundle, add it to a second list for bundles
            else {
                
               	bundleQuoteLines.add(quoteLine);
@@ -83,14 +89,15 @@ Database.Batchable<SObject>, Database.Stateful {
           
        }
        
-       
+       // 10. Insert the main list of quote lines
        insert quoteLinesList;
        }
        
-    
+       // 11. In the finish method, we want to call the next batch class to create the bundle components. 
        global void finish(Database.BatchableContext bc){
        
-       
+       		BatchRenewalQuoteLineBundles brqlb = new BatchRenewalQuoteLineBundles() ;
+
        
        
        
