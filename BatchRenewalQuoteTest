@@ -1,6 +1,7 @@
 @isTest
 private class BatchRenewalQuoteTest {
     
+     BatchRenewalQuote job = new BatchRenewalQuote();
     
       @isTest static void createDirectOpportunity() {  
           
