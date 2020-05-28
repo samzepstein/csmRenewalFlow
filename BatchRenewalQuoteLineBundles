@@ -1,25 +1,37 @@
 global class BatchRenewalQuoteLineBundles implements 
 Database.Batchable<SObject>, Database.Stateful {
-
     
+    List<SBQQ__QuoteLine__c> bundleQuoteLines;
+    Integer daysBeforeRenew;
     
-        global Database.QueryLocator start(Database.BatchableContext bc) {
+    global BatchRenewalQuoteLineBundles(List<SBQQ__QuoteLine__c> bundleQuoteLines, Integer daysBeforeRenew){
+        this.bundleQuoteLines = bundleQuoteLines;
+        this.daysBeforeRenew = daysBeforeRenew;
+        
+    }
+    global Database.QueryLocator start(Database.BatchableContext bc) {
         return Database.getQueryLocator(
-				[Select Id,	SBQQ__ConfiguredSKU__c, SBQQ__OptionalSKU__c, SBQQ__Discount__c
-                 FROM SBQQ__ProductOption__c]
+            [Select Id,	SBQQ__ConfiguredSKU__c, SBQQ__OptionalSKU__c, SBQQ__Discount__c
+             FROM SBQQ__ProductOption__c]
             
-            );
+        );
+        
+    }
+    
+    global void execute(Database.BatchableContext bc, List<SBQQ__QuoteLine__c> scope){
+        
+        for (SBQQ__QuoteLine__c quoteLine : scope){
+            system.debug('Bullshit');
             
         }
+        
+        
+    }
     
-       global void execute(Database.BatchableContext bc, List<SBQQ__QuoteLine__c> scope){
-           
-           for (SBQQ__QuoteLine__c quoteLine : scope){
-               
-              
-              }
-           
-           
-       }
-            
+    
+    global void finish(Database.BatchableContext bc){
+        
+        
+    }
+    
 }
