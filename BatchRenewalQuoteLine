@@ -17,11 +17,7 @@ Database.Batchable<SObject>, Database.Stateful {
     // 4. Within the start method, query for the quotes (SBQQ__Quote__c) that have the Ids from quoteIDs including the Account (SBQQ__Account__c) in the SELECT clause
     // 5. Return this list of quotes.
     global Database.QueryLocator start(Database.BatchableContext bc) {
-        return Database.getQueryLocator(
-            [SELECT Id, SBQQ__Account__c 
-             FROM SBQQ__Quote__c  WHERE Id :quoteIds]
-            
-        );
+        return Database.getQueryLocator([SELECT Id, SBQQ__Account__c FROM SBQQ__Quote__c  WHERE Id in :quoteIds]);
         
     }   
     
@@ -40,7 +36,7 @@ Database.Batchable<SObject>, Database.Stateful {
        // 7. use a for loop to pull out the account Ids from the list of quotes that are in the scope of the execute method. It should be a 1:1 relationship between accounts and quotes.
        for (SBQQ__Quote__c quote : scope){
            
-            Id acctId = quote.AccountId;
+            Id acctId = quote.SBQQ__Account__c;
              
             quoteMap.put(acctId, quote);
            
@@ -52,60 +48,92 @@ Database.Batchable<SObject>, Database.Stateful {
        
       
        // 8. Query for Quote Lines  that have end dateson the date of today + daysBeforeRenew which 
-       List<AggregateResult> aggregateList = [SELECT SBQQ__Quote__r.SBQQ__Account__c, SBQQ__Product__c, SUM(SBQQ__Quantity__c) sum
+       // 
+       
+       List<AggregateResult> quoteTermAggregate = [SELECT SBQQ__Quote__r.SBQQ__Opportunity2__r.AccountId, MAX(Subscription_Term_in_yr__c) maxYEAR
                                                FROM SBQQ__QuoteLine__c 
                                                WHERE SBQQ__EndDate__c = :endDate
-                                               AND SBQQ__RequiredBy__c = NULL
-                                               AND SBQQ__Quote__r.SBQQ__Status__c = 'Accepted'
-                                               AND SBQQ__Quote__r.SBQQ__Account__c IN :accountIds
+                                               AND SBQQ__RequiredBy__c = NULL 
+                                               AND SBQQ__Quote__r.SBQQ__Status__c = 'Accepted' 
                                                AND SBQQ__Quote__r.SBQQ__Opportunity2__r.StageName = 'Purchase' 
-                                               AND SBQQ__Quote__r.SBQQ__Opportunity2__r.Returned_or_CM__c = FALSE
-                                               GROUP BY SBQQ__Quote__r.SBQQ__Account__c, SBQQ__Product__c];
+                                               AND SBQQ__Quote__r.SBQQ__Opportunity2__r.Returned_or_CM__c = FALSE 
+                                               AND SBQQ__Product__r.Core_Product__c = True 
+                                               GROUP BY SBQQ__Quote__r.SBQQ__Opportunity2__r.AccountId];
+       
+       Map<Id, Decimal> acctQuoteTermMap = new Map<Id, Decimal>();
+       
+       for(AggregateResult arg : quoteTermAggregate) {
+           
+           acctQuoteTermMap.put((Id)arg.get('SBQQ__Quote__r.SBQQ__Account__c'), (Decimal)arg.get('maxYEAR'));
+           
+       }
+       
+       
+       List<AggregateResult> aggregateList = [SELECT SBQQ__Quote__r.SBQQ__Opportunity2__r.AccountId, MAX(isBundled__c) maxBundle, SBQQ__Product__c, MIN(SBQQ__Quote__r.SBQQ__Account__r.Sales_Discount__c) mindisc, SUM(SBQQ__Quantity__c) sum 
+                                               FROM SBQQ__QuoteLine__c 
+                                               WHERE SBQQ__EndDate__c = :endDate
+                                               AND SBQQ__RequiredBy__c = NULL 
+                                               AND SBQQ__Quote__r.SBQQ__Status__c = 'Accepted' 
+                                               AND SBQQ__Quote__r.SBQQ__Opportunity2__r.StageName = 'Purchase' 
+                                               AND SBQQ__Quote__r.SBQQ__Opportunity2__r.Returned_or_CM__c = FALSE 
+                                               AND SBQQ__Product__r.Core_Product__c = True 
+                                               GROUP BY SBQQ__Quote__r.SBQQ__Opportunity2__r.AccountId, SBQQ__Product__c];
+       
+       
+
            
           
                                                
-   
+  
                                                 
        // 9. For each entry in the AggregateResult list, create a new quoteline with the combined quantity                                       
 	   for(AggregateResult ar : aggregateList) {
           
            SBQQ__QuoteLine__c quoteLine = new SBQQ__QuoteLine__c();
            
-           quoteLine.SBQQ__Quantity__c = ar.get('sum');
-           quoteLine.SBQQ__Product__c  = ar.get('SBQQ__Product__c');
-           Id accountId = ar.get('SBQQ__Quote__r.SBQQ__Account__c');
+           quoteLine.SBQQ__Quantity__c = (Decimal)ar.get('sum');
+           quoteLine.SBQQ__Product__c  = (Id)ar.get('SBQQ__Product__c');
+           
+           Id accountId = (Id)ar.get('SBQQ__Quote__r.SBQQ__Account__c');
            
            SBQQ__Quote__c quote = quoteMap.get(accountId);
            
            quoteLine.SBQQ__Quote__c = quote.Id;
            
+           quoteLine.Sales_Discount__c = (Decimal)ar.get('mindisc');
+           quoteLine.SBQQ__StartDate__c = endDate + 1;       
            
-         
-           if SBQQ__Bundled__c == FALSE; {
-       
-      			// 9b. Add the quoteline to a list to be inserted
-           	   	quoteLinesList.add(quoteLine);
+           Integer quoteterms = Integer.valueOf(acctQuoteTermMap.get(accountId));
+           quoteLine.SBQQ__EndDate__c = endDate.addYears(quoteterms);
+			
+           
+           
+           // 9c. If the quoteline is a bundle, add it to a second list for bundles
+           if ((Decimal)ar.get('maxBundle') > 0) {
+               
+               bundleQuoteLines.add(quoteLine);
               
            }
            
-           // 9c. If the quoteline is a bundle, add it to a second list for bundles
-           else {
-               
-              	bundleQuoteLines.add(quoteLine);
+           
+            // 9b. Add the quoteline to a list to be inserted
+			quoteLinesList.add(quoteLine);
               	 
                
            }
+       
+       insert quoteLinesList;
           
        }
        
        // 10. Insert the main list of quote lines
-       insert quoteLinesList;
-       }
+       
+       
        
        // 11. In the finish method, we want to call the next batch class to create the bundle components. 
        global void finish(Database.BatchableContext bc){
        
-       		BatchRenewalQuoteLineBundles brqlb = new BatchRenewalQuoteLineBundles() ;
+       		BatchRenewalQuoteLineBundles brqlb = new BatchRenewalQuoteLineBundles(bundleQuoteLines, daysBeforeRenew) ;
 
        
        
