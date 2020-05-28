@@ -5,6 +5,8 @@ private class BatchRenewalQuoteTest {
     
       @isTest static void createDirectOpportunity() {  
           
+          Test.startTest();
+          
           Opportunity opp = new Opportunity;
           opp.Name = 'Test';
           opp.CloseDate  =  Date.today();
@@ -14,10 +16,15 @@ private class BatchRenewalQuoteTest {
           
           insert opp;
           
+          Database.executeBatch(job);
+          Test.stopTest();
+          
           
       }
     
-          @isTest static void createIndirectOpportunity() {  
+      @isTest static void createIndirectOpportunity() {  
+          
+          Test.startTest();
           
           Opportunity opp2 = new Opportunity;
               
@@ -28,11 +35,16 @@ private class BatchRenewalQuoteTest {
           opp2.Channel__c = 'Indirect';
           
           insert opp2;
+
+	      Database.executeBatch(job);
+          Test.stopTest();
           
       }
 
     
-      @isTest static void createQuoteDirect() {     
+      @isTest static void createQuoteDirect() {   
+          
+        Test.startTest();
         
         SBQQ__Quote__c[] quoteListDirect = new List();
         for (Integer i=0;i<200;i++) {
@@ -49,10 +61,15 @@ private class BatchRenewalQuoteTest {
         }
         insert quoteListDirect;
           
+        Database.executeBatch(job);
+        Test.stopTest();
+          
           
       }
     
-     @isTest static void createQuoteIndirect() {     
+     @isTest static void createQuoteIndirect() {    
+         
+        Test.startTest();
         
         SBQQ__Quote__c[] quoteListIndirect = new List();
         for (Integer i=0;i<200;i++) {
@@ -68,6 +85,9 @@ private class BatchRenewalQuoteTest {
             quoteListIndirect.add(quote2);
         }
         insert quoteListIndirect;
+         
+        Database.executeBatch(job);
+        Test.stopTest();
           
           
       }
