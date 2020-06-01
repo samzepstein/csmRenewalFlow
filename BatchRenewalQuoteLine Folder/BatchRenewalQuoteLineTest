@@ -1,0 +1,26 @@
+@isTest
+private class BatchRenewalQuoteLineTest {
+    
+     BatchRenewalQuoteLine job = new BatchRenewalQuoteLine();
+    
+      @isTest static void createQuoteLine() {
+          
+          
+          Test.startTest();
+          
+          SBQQ__QuoteLine__c quoteLineBundle = new SBQQ__QuoteLine__c();
+          
+          //set product to Suite 24/7 to trigger isBundled? Field to 1
+		  quoteLineBundle.SBQQ__Product__c = '01t4N00000473wXQAQ'; 
+          
+          quoteLineBundle.Deal_Type__c = 'New';
+          
+          
+          
+          Database.executeBatch(job);
+          Test.stopTest();
+          
+          
+      }
+    
+}
