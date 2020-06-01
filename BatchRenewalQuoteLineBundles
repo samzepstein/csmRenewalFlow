@@ -3,25 +3,73 @@ Database.Batchable<SObject>, Database.Stateful {
     
     List<SBQQ__QuoteLine__c> bundleQuoteLines;
     Integer daysBeforeRenew;
+    Map<Id, List<SBQQ__ProductOption__c>> productIdOptionMap = new Map<Id, List<SBQQ__ProductOption__c>>();
     
+    // 1. Query for Product Options related to each suite bundle
     global BatchRenewalQuoteLineBundles(List<SBQQ__QuoteLine__c> bundleQuoteLines, Integer daysBeforeRenew){
         this.bundleQuoteLines = bundleQuoteLines;
         this.daysBeforeRenew = daysBeforeRenew;
+		List<SBQQ__ProductOption__c> productOptionList = [Select Id,SBQQ__ConfiguredSKU__c, SBQQ__OptionalSKU__c, SBQQ__Discount__c
+             FROM SBQQ__ProductOption__c WHERE SBQQ__ConfiguredSKU__r.Name LIKE '%Suite%'];  
+        
+        for (SBQQ__ProductOption__c productOption : productOptionList){   
+            
+            Id configuredSkuId = productOption.SBQQ__ConfiguredSKU__c;
+            
+            List<SBQQ__ProductOption__c> productList = this.productIdOptionMap.containsKey(configuredSkuId) ? this.productIdOptionMap.get(configuredSkuId) : new List<SBQQ__ProductOption__c>();
+            
+            productList.add(productOption);
+            
+            this.productIdOptionMap.put(configuredSkuId, productList);
+            
+            
+        }
         
     }
-    global Database.QueryLocator start(Database.BatchableContext bc) {
-        return Database.getQueryLocator(
-            [Select Id,	SBQQ__ConfiguredSKU__c, SBQQ__OptionalSKU__c, SBQQ__Discount__c
-             FROM SBQQ__ProductOption__c]
-            
-        );
+    global List<SBQQ__QuoteLine__c> start(Database.BatchableContext bc) {
+        return bundleQuoteLines;
         
     }
     
+    // 2. For each quote line passed into the batch, add a component quoteline for each option.
     global void execute(Database.BatchableContext bc, List<SBQQ__QuoteLine__c> scope){
         
+        // get list of product options from product Id option map. Iterate through  each product option and adding a quote line for each one
+        // look at extra bits of info in component quote line
+        
+        List<SBQQ__QuoteLine__c> quoteLineList = new List<SBQQ__QuoteLine__c>();
+        
+        //for quoteLine in the list of Bundle quotes
         for (SBQQ__QuoteLine__c quoteLine : scope){
-            system.debug('Bullshit');
+            
+            //bundle quote line product id
+            Id productId = quoteLine.SBQQ__Product__c;
+            //bundle quote line id
+            Id quoteId = quoteLine.Id;
+            
+            //suite core 
+            If productId = '01t4N000004RG8aQAG';
+            
+            SBQQ__QuoteLine__c quoteLineGGAdmin = new SBQQ__QuoteLine__c();
+            
+            quoteLineGGAdmin.SBQQ__RequiredBy__c = quoteId;
+            quoteLineGGAdmin.SBQQ__ProductOption__c = productOptionList.Id;
+            quoteLineGGAdmin.SBQQ__Product__c = quoteLine.SBQQ__ProductOption__c.SBQQ__OptionalSKU__c;
+            quoteLineGGAdmin.SBQQ__OptionDiscount__c = quoteLine.SBQQ__ProductOption__c.SBQQ__Discount__c;
+           
+            
+            
+            
+               
+            
+            SBQQ__QuoteLine__c quoteLine = new SBQQ__QuoteLine__c();
+            
+            SBQQ__QuoteLine__c quoteLine = new SBQQ__QuoteLine__c();
+            
+            SBQQ__QuoteLine__c quoteLine = new SBQQ__QuoteLine__c();
+            
+            SBQQ__QuoteLine__c quoteLine = new SBQQ__QuoteLine__c();
+            
             
         }
         
