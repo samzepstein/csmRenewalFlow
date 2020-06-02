@@ -44,7 +44,7 @@ private class BatchRenewalQuoteTest {
     
       @isTest static void createQuoteDirect() {   
           
-        Test.startTest();
+        
         
         SBQQ__Quote__c[] quoteListDirect = new List();
         for (Integer i=0;i<200;i++) {
@@ -52,15 +52,16 @@ private class BatchRenewalQuoteTest {
 		   SBQQ__Quote__c quote = new SBQQ__Quote__c();
            
            quote.SBQQ__Primary__c = True;
-           quote.SBQQ__Opportunity2__c = opp.id;
+           quote.SBQQ__Opportunity2__c = '0064N00000ZDZZ6QAP';
            quote.SBQQ__Status__c = 'Draft';
-           quote.SBQQ__Account__c = opp.AccountId;
-           quote.Opportunity.Channel__c  = 'Direct';
+           quote.SBQQ__Account__c = '0014N00001jVz9qQAC';
+           quote.SBQQ__Opportunity2__c.Channel__c  = 'Direct';
             
             quoteListDirect.add(quote);
         }
         insert quoteListDirect;
           
+        Test.startTest();
         Database.executeBatch(job);
         Test.stopTest();
           
@@ -77,10 +78,10 @@ private class BatchRenewalQuoteTest {
 		   SBQQ__Quote__c quote2 = new SBQQ__Quote__c();
            
            quote2.SBQQ__Primary__c = True;
-           quote2.SBQQ__Opportunity2__c = opp.id;
+           quote2.SBQQ__Opportunity2__c = '0064N00000ZDZZ6QAP';
            quote2.SBQQ__Status__c = 'Draft';
-           quote2.SBQQ__Account__c = opp.AccountId;
-           quote2.Opportunity.Channel__c  = 'Indirect';
+           quote2.SBQQ__Account__c = '0014N00001jVz9qQAC';
+           quote2.SBQQ__Opportunity2__c.Channel__c  = 'Indirect';
             
             quoteListIndirect.add(quote2);
         }
