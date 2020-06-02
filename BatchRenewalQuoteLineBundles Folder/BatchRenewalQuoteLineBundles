@@ -34,45 +34,45 @@ Database.Batchable<SObject>, Database.Stateful {
     // 2. For each quote line passed into the batch, add a component quoteline for each option.
     global void execute(Database.BatchableContext bc, List<SBQQ__QuoteLine__c> scope){
         
-        // get list of product options from product Id option map. Iterate through  each product option and adding a quote line for each one
+        
         // look at extra bits of info in component quote line
         
         List<SBQQ__QuoteLine__c> quoteLineList = new List<SBQQ__QuoteLine__c>();
         
-        //for quoteLine in the list of Bundle quotes
-        for (SBQQ__QuoteLine__c quoteLine : scope){
+        //for quoteLine in the list of Bundle quotes - suite core + suite 24/7
+        for (SBQQ__QuoteLine__c bundleQuoteLine : scope){    
             
-            //bundle quote line product id
-            Id productId = quoteLine.SBQQ__Product__c;
+            //essentially configured SKU on Product Option
+            Id bundleProductId = bundleQuoteline.SBQQ__Product__c;
+            
             //bundle quote line id
-            Id quoteId = quoteLine.Id;
+            Id bundleQuoteLineId = bundleQuoteLine.Id;
             
-            //suite core 
-            If productId = '01t4N000004RG8aQAG';
-            
-            SBQQ__QuoteLine__c quoteLineGGAdmin = new SBQQ__QuoteLine__c();
-            
-            quoteLineGGAdmin.SBQQ__RequiredBy__c = quoteId;
-            quoteLineGGAdmin.SBQQ__ProductOption__c = productOptionList.Id;
-            quoteLineGGAdmin.SBQQ__Product__c = quoteLine.SBQQ__ProductOption__c.SBQQ__OptionalSKU__c;
-            quoteLineGGAdmin.SBQQ__OptionDiscount__c = quoteLine.SBQQ__ProductOption__c.SBQQ__Discount__c;
-           
-            
-            
-            
-               
-            
+            // get list of product options from product Id option map. Iterate through  each product option and adding a quote line for each one
+            for (SBQQ__ProductOption__c po : productIdOptionMap.get(bundleProductId)){       
+  
+                
             SBQQ__QuoteLine__c quoteLine = new SBQQ__QuoteLine__c();
             
-            SBQQ__QuoteLine__c quoteLine = new SBQQ__QuoteLine__c();
+            quoteLine.SBQQ__RequiredBy__c = bundleQuoteLineId;
+            quoteLine.SBQQ__ProductOption__c = po.Id;
+            quoteLine.SBQQ__Product__c = po.SBQQ__OptionalSKU__c;
+            quoteLine.SBQQ__OptionDiscount__c = po.SBQQ__Discount__c;
+            quoteLine.SBQQ__StartDate__c = bundleQuoteLine.SBQQ__StartDate__c;
+            quoteLine.SBQQ__EndDate__c = bundleQuoteLine.SBQQ__EndDate__c;
+            quoteLine.Sales_Discount__c = bundleQuoteLine.Sales_Discount__c;
+            quoteLine.SBQQ__Quote__c = bundleQuoteLine.SBQQ__Quote__c;
+            quoteLine.Deal_Type__c = 'Renewal';
+                
+            quoteLineList.add(quoteLine);   
+                
+            }
             
-            SBQQ__QuoteLine__c quoteLine = new SBQQ__QuoteLine__c();
-            
-            SBQQ__QuoteLine__c quoteLine = new SBQQ__QuoteLine__c();
-            
+              
             
         }
         
+		insert quoteLineList;
         
     }
     
