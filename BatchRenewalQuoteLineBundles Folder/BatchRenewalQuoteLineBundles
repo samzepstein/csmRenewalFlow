@@ -4,13 +4,16 @@ Database.Batchable<SObject>, Database.Stateful {
     List<SBQQ__QuoteLine__c> bundleQuoteLines;
     Integer daysBeforeRenew;
     Map<Id, List<SBQQ__ProductOption__c>> productIdOptionMap = new Map<Id, List<SBQQ__ProductOption__c>>();
-    
     // 1. Query for Product Options related to each suite bundle
     global BatchRenewalQuoteLineBundles(List<SBQQ__QuoteLine__c> bundleQuoteLines, Integer daysBeforeRenew){
         this.bundleQuoteLines = bundleQuoteLines;
         this.daysBeforeRenew = daysBeforeRenew;
-		List<SBQQ__ProductOption__c> productOptionList = [Select Id,SBQQ__ConfiguredSKU__c, SBQQ__OptionalSKU__c, SBQQ__Discount__c
+        List<SBQQ__ProductOption__c> productOptionList = [Select Id,SBQQ__ConfiguredSKU__c, SBQQ__OptionalSKU__c, SBQQ__Discount__c
              FROM SBQQ__ProductOption__c WHERE SBQQ__ConfiguredSKU__r.Name LIKE '%Suite%'];  
+        
+        system.debug('productOptionList: ' + productOptionList);
+        
+        system.debug('bundleQuoteLines: ' + bundleQuoteLines);
         
         for (SBQQ__ProductOption__c productOption : productOptionList){   
             
@@ -34,6 +37,9 @@ Database.Batchable<SObject>, Database.Stateful {
     // 2. For each quote line passed into the batch, add a component quoteline for each option.
     global void execute(Database.BatchableContext bc, List<SBQQ__QuoteLine__c> scope){
         
+        SBQQ.TriggerControl.disable();
+        
+        system.debug('scope: ' + scope);
         
         // look at extra bits of info in component quote line
         
@@ -71,9 +77,10 @@ Database.Batchable<SObject>, Database.Stateful {
               
             
         }
+
+        insert quoteLineList;
         
-		insert quoteLineList;
-        
+        SBQQ.TriggerControl.enable();
     }
     
     
