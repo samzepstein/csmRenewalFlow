@@ -1,10 +1,12 @@
 // 1.Create a new class that implements Batch apex.
 global class csmRenewalFlow implements Database.Batchable<SObject>, Database.Stateful {
-    global Map<Id, Set<sObject>> multipleRenewOpps; 
+    
+    
+    global Set<Id> oppIds = new Set<Id>();
+    global Map<Id, Set<sObject>> multipleRenewOpps = new Map<Id, Set<sObject>>(); 
     global Integer daysBeforeRenew;
     
     global csmRenewalFlow(Integer daysBeforeRenew){
-        this.multipleRenewOpps = new Map<Id, Set<sObject>>();
         this.daysBeforeRenew = daysBeforeRenew;
     }
     
@@ -16,7 +18,7 @@ global class csmRenewalFlow implements Database.Batchable<SObject>, Database.Sta
         return Database.getQueryLocator(
             // 3.Write a SOQL query to return a list of accounts
             // Date dte = System.today() + 90; ---> substitute TODAY + N for :dte
-            [SELECT ID, OwnerId, Contract_End_Date_Count__c, Max_Contract_End__c,
+            [SELECT ID, Name, Most_Recent_AP_Contact__c, OwnerId, Contract_End_Date_Count__c, Max_Contract_End__c,
              BillingStreet, BillingCity, BillingState, Most_Recent_Channel__c,
              Most_Recent_Reseller__c, Most_Recent_Admin__c FROM Account 
              WHERE Contract_End_Date_Count__c = 1 AND Max_Contract_End__c = :dte]
@@ -34,6 +36,7 @@ global class csmRenewalFlow implements Database.Batchable<SObject>, Database.Sta
         opp.CloseDate = closeDate;
         opp.SBQQ__RenewedContract__c = contractId;
         opp.AccountId = acct.Id;
+        opp.StageName = 'Defined';
         opp.Admin_Contact__c =acct.Most_Recent_Admin__c;
         opp.Channel__c = channel;
         if(channel == 'Direct'){
@@ -48,6 +51,11 @@ global class csmRenewalFlow implements Database.Batchable<SObject>, Database.Sta
     
     // 4.Declare the execute method to return void and take in a BatchableContext as well as a list of accounts.
     global void execute(Database.BatchableContext bc, List<Account> scope){
+        
+        //List of Ids to pass to BatchRenewalQuote
+
+       
+      
         // 6.Create a Map of Account pulling out the Id as a key
         List<Contract> updateContracts = new List<Contract>();
         Map <ID, Account> accountMap = new Map <ID, Account>(scope);
@@ -94,6 +102,8 @@ global class csmRenewalFlow implements Database.Batchable<SObject>, Database.Sta
                 }
                 when 1 {
                     Id oppId = (new List<Id>(renewalOppIds))[0];
+                    //add existing reenwal oppId to oppIds list
+                    oppIds.add(oppId);
                     for(Contract cont : acctContracts){
                         if(cont.SBQQ__RenewalOpportunity__c != oppId){
                             cont.SBQQ__RenewalOpportunity__c = oppId;
@@ -114,6 +124,8 @@ global class csmRenewalFlow implements Database.Batchable<SObject>, Database.Sta
         if(renewalOppList.size() > 0){
             insert renewalOppList;
             for(Opportunity opp : renewalOppList){
+                //adding new opp id and adding it to global set oppIds
+                oppIds.add(opp.Id);
                 Id acctId = opp.AccountId;
                 List<Contract> contractList = acctContractMap.get(acctId);
                 for(Contract cont : contractList){
@@ -147,6 +159,10 @@ global class csmRenewalFlow implements Database.Batchable<SObject>, Database.Sta
             
         }
         
+        Database.executeBatch(new BatchRenewalQuote(new List<Id>(oppIds), daysBeforeRenew));
+		
+        
+        
         
         // Get the ID of the AsyncApexJob representing this batch job
         // from Database.BatchableContext.
@@ -166,3 +182,5 @@ global class csmRenewalFlow implements Database.Batchable<SObject>, Database.Sta
         Messaging.sendEmail(new Messaging.SingleEmailMessage[] { mail });
     }
 }
+    
+
