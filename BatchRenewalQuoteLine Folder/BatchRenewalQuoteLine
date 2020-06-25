@@ -4,12 +4,12 @@ global class BatchRenewalQuoteLine implements
 Database.Batchable<SObject>, Database.Stateful {
     
     // 2. Declare as instance variables a list of Ids called quoteIDs, an integer called daysBeforeRenew, and a List of quotelines called bundleQuoteLines
-    global List<Id> quoteIds; 
+    global Set<Id> quoteIds; 
     global Integer daysBeforeRenew;
     List<SBQQ__QuoteLine__c> bundleQuoteLines = new List<SBQQ__QuoteLine__c>();
     
     // 3. Create a constructor to set the value of quoteIDs and daysBeforeRenew when an instance of the BatchRenewalQuote is created. Instantiate the bundle list as an empty list
-    global BatchRenewalQuoteLine(List<Id> quoteIds, Integer daysBeforeRenew){
+    global BatchRenewalQuoteLine(Set<Id> quoteIds, Integer daysBeforeRenew){
         this.quoteIds = quoteIds;
         this.daysBeforeRenew = daysBeforeRenew;
 
@@ -33,8 +33,12 @@ Database.Batchable<SObject>, Database.Stateful {
        // 7. Instantiate a map of ID,Quote
        Map<ID, SBQQ__Quote__c> quoteMap = new Map<ID, SBQQ__Quote__c>();
        
+       system.debug('scope: ' + scope);
+       
        // 7. use a for loop to pull out the account Ids from the list of quotes that are in the scope of the execute method. It should be a 1:1 relationship between accounts and quotes.
        for (SBQQ__Quote__c quote : scope){
+
+            system.debug('quote: ' + quote);
            
             Id acctId = quote.SBQQ__Account__c;
              
@@ -44,7 +48,10 @@ Database.Batchable<SObject>, Database.Stateful {
        }
            
  
-       Date endDate = system.today() + daysBeforeRenew;
+       //Date endDate = system.today() + daysBeforeRenew;
+	   Date endDate = date.newInstance(2021, 1, 20);      
+       
+       system.debug('endDate: ' + endDate);
        
       
        // 8. Query for Quote Lines  that have end dateson the date of today + daysBeforeRenew which 
@@ -57,26 +64,30 @@ Database.Batchable<SObject>, Database.Stateful {
                                                AND SBQQ__Quote__r.SBQQ__Status__c = 'Accepted' 
                                                AND SBQQ__Quote__r.SBQQ__Opportunity2__r.StageName = 'Purchase' 
                                                AND SBQQ__Quote__r.SBQQ__Opportunity2__r.Returned_or_CM__c = FALSE 
-                                               AND SBQQ__Product__r.Core_Product__c = True 
                                                GROUP BY SBQQ__Quote__r.SBQQ__Opportunity2__r.AccountId];
        
        Map<Id, Decimal> acctQuoteTermMap = new Map<Id, Decimal>();
        
+       system.debug('quoteTermAggregate: ' + quoteTermAggregate);
+       
        for(AggregateResult arg : quoteTermAggregate) {
            
-           acctQuoteTermMap.put((Id)arg.get('SBQQ__Quote__r.SBQQ__Account__c'), (Decimal)arg.get('maxYEAR'));
+           system.debug(arg);
+           
+           acctQuoteTermMap.put((Id)arg.get('AccountId'), (Decimal)arg.get('maxYEAR'));
+           
            
        }
        
        
        List<AggregateResult> aggregateList = [SELECT SBQQ__Quote__r.SBQQ__Opportunity2__r.AccountId, MAX(isBundled__c) maxBundle, SBQQ__Product__c, MIN(SBQQ__Quote__r.SBQQ__Account__r.Sales_Discount__c) mindisc, SUM(SBQQ__Quantity__c) sum 
                                                FROM SBQQ__QuoteLine__c 
-                                               WHERE SBQQ__EndDate__c = :endDate
+                                               WHERE SBQQ__Quote__r.SBQQ__Opportunity2__r.AccountId IN :acctQuoteTermMap.keySet()
+                                               AND SBQQ__EndDate__c = :endDate 
                                                AND SBQQ__RequiredBy__c = NULL 
                                                AND SBQQ__Quote__r.SBQQ__Status__c = 'Accepted' 
                                                AND SBQQ__Quote__r.SBQQ__Opportunity2__r.StageName = 'Purchase' 
                                                AND SBQQ__Quote__r.SBQQ__Opportunity2__r.Returned_or_CM__c = FALSE 
-                                               AND SBQQ__Product__r.Core_Product__c = True 
                                                GROUP BY SBQQ__Quote__r.SBQQ__Opportunity2__r.AccountId, SBQQ__Product__c];
        
        
@@ -93,10 +104,13 @@ Database.Batchable<SObject>, Database.Stateful {
            
            quoteLine.SBQQ__Quantity__c = (Decimal)ar.get('sum');
            quoteLine.SBQQ__Product__c  = (Id)ar.get('SBQQ__Product__c');
+           quoteLine.Deal_Type__c = 'New';
            
-           Id accountId = (Id)ar.get('SBQQ__Quote__r.SBQQ__Account__c');
+           Id accountId = (Id)ar.get('AccountId');
            
            SBQQ__Quote__c quote = quoteMap.get(accountId);
+           
+           system.debug(quote);
            
            quoteLine.SBQQ__Quote__c = quote.Id;
            
@@ -122,11 +136,12 @@ Database.Batchable<SObject>, Database.Stateful {
                
            }
        
+        // 10. Insert the main list of quote lines
        insert quoteLinesList;
           
        }
        
-       // 10. Insert the main list of quote lines
+      
        
        
        
