@@ -15,15 +15,18 @@ global class csmRenewalFlow implements Database.Batchable<SObject>, Database.Sta
     // N should be formula field to reference # of days before the contract expiration that we want to create the opportunity
     global Database.QueryLocator start(Database.BatchableContext bc) {
         Date dte = System.today() + daysBeforeRenew;
-        return Database.getQueryLocator(
+        Database.QueryLocator query = Database.getQueryLocator(
             // 3.Write a SOQL query to return a list of accounts
             // Date dte = System.today() + 90; ---> substitute TODAY + N for :dte
             [SELECT ID, Name, Most_Recent_AP_Contact__c, OwnerId, Contract_End_Date_Count__c, Max_Contract_End__c,
              BillingStreet, BillingCity, BillingState, Most_Recent_Channel__c,
              Most_Recent_Reseller__c, Most_Recent_Admin__c FROM Account 
              WHERE Contract_End_Date_Count__c = 1 AND Max_Contract_End__c = :dte]
+
         );
         
+        system.debug(query);
+        return query;
         
     }
     
@@ -146,9 +149,9 @@ global class csmRenewalFlow implements Database.Batchable<SObject>, Database.Sta
         
         // handle multiple opps for one account
         // use State to track
-        if (!multipleRenewOpps.isEmpty()){
+        if (multipleRenewOpps.isEmpty()){
             List <Messaging.SingleEmailMessage> messages = new List <Messaging.SingleEmailMessage>();
-            Map<Id, String> ownerHtmlMap = EmailHelper.setRecordLinkHtml(multipleRenewOpps, 'Multiple Renew Opps');
+            Map<Id, String> ownerHtmlMap = EmailHelper.setRecordLinkHtml(multipleRenewOpps, 'Multiple_Renew_Opps');
             for (id ownerId : ownerHtmlMap.keySet()) {
                 Messaging.SingleEmailMessage msg =  new Messaging.SingleEmailMessage();
                 msg.setHtmlBody(ownerHtmlMap.get(ownerId));
@@ -182,5 +185,3 @@ global class csmRenewalFlow implements Database.Batchable<SObject>, Database.Sta
         Messaging.sendEmail(new Messaging.SingleEmailMessage[] { mail });
     }
 }
-    
-
