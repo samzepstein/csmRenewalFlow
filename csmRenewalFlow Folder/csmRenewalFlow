@@ -1,3 +1,8 @@
+//https://goguardian--intacct2.lightning.force.com/lightning/r/Account/0014N0000233xj3QAA/view
+
+
+
+
 // 1.Create a new class that implements Batch apex.
 global class csmRenewalFlow implements Database.Batchable<SObject>, Database.Stateful {
     
@@ -15,18 +20,17 @@ global class csmRenewalFlow implements Database.Batchable<SObject>, Database.Sta
     // N should be formula field to reference # of days before the contract expiration that we want to create the opportunity
     global Database.QueryLocator start(Database.BatchableContext bc) {
         Date dte = System.today() + daysBeforeRenew;
-        Database.QueryLocator query = Database.getQueryLocator(
+        system.debug(dte);
+        return Database.getQueryLocator(
             // 3.Write a SOQL query to return a list of accounts
             // Date dte = System.today() + 90; ---> substitute TODAY + N for :dte
-            [SELECT ID, Name, Most_Recent_AP_Contact__c, OwnerId, Contract_End_Date_Count__c, Max_Contract_End__c,
+            [SELECT ID, Name, Most_Recent_AP_Contact__c, OwnerId, Contract_End_Date_Count__c, Max_Contract_End__c, CSM__c,
              BillingStreet, BillingCity, BillingState, Most_Recent_Channel__c,
              Most_Recent_Reseller__c, Most_Recent_Admin__c FROM Account 
              WHERE Contract_End_Date_Count__c = 1 AND Max_Contract_End__c = :dte]
 
         );
-        
-        system.debug(query);
-        return query;
+
         
     }
     
@@ -40,6 +44,7 @@ global class csmRenewalFlow implements Database.Batchable<SObject>, Database.Sta
         opp.SBQQ__RenewedContract__c = contractId;
         opp.AccountId = acct.Id;
         opp.StageName = 'Defined';
+        opp.OwnerId = acct.CSM__c == Null ? acct.OwnerId : acct.CSM__c;
         opp.Admin_Contact__c =acct.Most_Recent_Admin__c;
         opp.Channel__c = channel;
         if(channel == 'Direct'){
@@ -57,7 +62,7 @@ global class csmRenewalFlow implements Database.Batchable<SObject>, Database.Sta
         
         //List of Ids to pass to BatchRenewalQuote
 
-       
+        system.debug('Scope: ' + scope);
       
         // 6.Create a Map of Account pulling out the Id as a key
         List<Contract> updateContracts = new List<Contract>();
@@ -71,6 +76,9 @@ global class csmRenewalFlow implements Database.Batchable<SObject>, Database.Sta
         
         Map<Id, List<Contract>> acctContractMap = new Map<Id, List<Contract>>();
         Map<Id, Set<Id>> acctOppIdMap = new Map<Id, Set<Id>>();
+        
+        system.debug(acctContractMap);
+        system.debug(acctOppIdMap);
         
         for(Contract cont : contracts){
             Id acctId = cont.AccountId;
