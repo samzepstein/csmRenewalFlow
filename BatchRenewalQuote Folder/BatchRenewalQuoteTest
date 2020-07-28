@@ -1,96 +1,92 @@
 @isTest
-private class BatchRenewalQuoteTest {
+public class Test_BatchRenewalQuote {
     
-     BatchRenewalQuote job = new BatchRenewalQuote();
-    
-      @isTest static void createDirectOpportunity() {  
-          
-          Test.startTest();
-          
-          Opportunity opp = new Opportunity;
-          opp.Name = 'Test';
-          opp.CloseDate  =  Date.today();
-          opp.StageName = 'Prospecting';
-          
-          opp.Channel__c = 'Direct';
-          
-          insert opp;
-          
-          Database.executeBatch(job);
-          Test.stopTest();
-          
-          
-      }
-    
-      @isTest static void createIndirectOpportunity() {  
-          
-          Test.startTest();
-          
-          Opportunity opp2 = new Opportunity;
-              
-          opp2.Name = 'Test';
-          opp2.CloseDate  =  Date.today();
-          opp2.StageName = 'Prospecting';
-          
-          opp2.Channel__c = 'Indirect';
-          
-          insert opp2;
-
-	      Database.executeBatch(job);
-          Test.stopTest();
-          
-      }
-
-    
-      @isTest static void createQuoteDirect() {   
-          
+    @testSetup
+    public static void setupTests(){
         
         
-        SBQQ__Quote__c[] quoteListDirect = new List();
-        for (Integer i=0;i<200;i++) {
-            
-		   SBQQ__Quote__c quote = new SBQQ__Quote__c();
-           
-           quote.SBQQ__Primary__c = True;
-           quote.SBQQ__Opportunity2__c = '0064N00000ZDZZ6QAP';
-           quote.SBQQ__Status__c = 'Draft';
-           quote.SBQQ__Account__c = '0014N00001jVz9qQAC';
-           quote.SBQQ__Opportunity2__c.Channel__c  = 'Direct';
-            
-            quoteListDirect.add(quote);
-        }
-        insert quoteListDirect;
-          
-        Test.startTest();
-        Database.executeBatch(job);
-        Test.stopTest();
-          
-          
-      }
-    
-     @isTest static void createQuoteIndirect() {    
-         
-        Test.startTest();
         
-        SBQQ__Quote__c[] quoteListIndirect = new List();
-        for (Integer i=0;i<200;i++) {
-            
-		   SBQQ__Quote__c quote2 = new SBQQ__Quote__c();
-           
-           quote2.SBQQ__Primary__c = True;
-           quote2.SBQQ__Opportunity2__c = '0064N00000ZDZZ6QAP';
-           quote2.SBQQ__Status__c = 'Draft';
-           quote2.SBQQ__Account__c = '0014N00001jVz9qQAC';
-           quote2.SBQQ__Opportunity2__c.Channel__c  = 'Indirect';
-            
-            quoteListIndirect.add(quote2);
-        }
-        insert quoteListIndirect;
-         
-        Database.executeBatch(job);
-        Test.stopTest();
-          
-          
-      }
+        //account
+        Account testAccount1 = new Account(Name='Test Direct Account');
+        
+        insert testAccount1;
+        
+        //Contact
+        Contact testContact1 = new Contact();
+        testContact1.FirstName = 'testFirst'; 
+        testContact1.LastName = 'testLast'; 
+        testContact1.AccountId = testAccount1.Id;
+        
+        INSERT testContact1;
+        
 
+        
+    }
+
+    
+    public static testMethod void testDirect(){
+        
+        List<Id> oppList = new List<Id>();
+        
+        Account testAccount = [SELECT Id FROM Account LIMIT 1];
+        
+        //Opportunity
+        Opportunity oppty2 = new Opportunity();
+        oppty2.Name = 'Test oppty';
+        oppty2.Type = 'New';
+        oppty2.AccountId = testAccount.Id;
+        oppty2.StageName = 'Closing';
+        oppty2.CloseDate = System.today();
+        oppty2.Channel__c = 'Direct';
+        oppty2.Amount = 120;
+        
+        
+        insert oppty2;
+        
+        oppList.add(oppty2.Id);
+        
+        
+        
+        Database.executeBatch(new BatchRenewalQuote(oppList, 365));
+        
+        
+    }
+    
+    
+    
+    public static testMethod void testIndirect(){
+        
+        
+        List<Id> oppList = new List<Id>();
+        
+        Account testAccount = [SELECT Id FROM Account LIMIT 1];
+        
+        Contact contact = [SELECT ID FROM Contact LIMIT 1];
+        
+        //Opportunity
+        Opportunity oppty2 = new Opportunity();
+        oppty2.Name = 'Test oppty';
+        oppty2.Type = 'New';
+        oppty2.AccountId = testAccount.Id;
+        oppty2.StageName = 'Closing';
+        oppty2.CloseDate = System.today();
+        oppty2.Channel__c = 'Indirect';
+        oppty2.Amount = 120;
+        oppty2.PrimaryDistributor__c = testAccount.id;
+        oppty2.QuotePrimaryPartner__c = testAccount.id;
+        oppty2.Partner_Rep__c = contact.id;
+        
+        insert oppty2;
+        
+        oppList.add(oppty2.Id);
+        
+        
+        Database.executeBatch(new BatchRenewalQuote(oppList, 365));
+        
+        
+    }
+    
+    
+    
+    
 }
