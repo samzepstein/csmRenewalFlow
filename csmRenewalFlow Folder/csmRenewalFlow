@@ -4,14 +4,14 @@
 
 
 // 1.Create a new class that implements Batch apex.
-global class csmRenewalFlow implements Database.Batchable<SObject>, Database.Stateful {
+global class BatchRenewalOpp implements Database.Batchable<SObject>, Database.Stateful {
     
     
     global Set<Id> oppIds = new Set<Id>();
     global Map<Id, Set<sObject>> multipleRenewOpps = new Map<Id, Set<sObject>>(); 
     global Integer daysBeforeRenew;
     
-    global csmRenewalFlow(Integer daysBeforeRenew){
+    global BatchRenewalOpp(Integer daysBeforeRenew){
         this.daysBeforeRenew = daysBeforeRenew;
     }
       
@@ -167,11 +167,14 @@ global class csmRenewalFlow implements Database.Batchable<SObject>, Database.Sta
         
         // handle multiple opps for one account
         // use State to track
-        if (multipleRenewOpps.isEmpty()){
+        if (!multipleRenewOpps.isEmpty()){
             List <Messaging.SingleEmailMessage> messages = new List <Messaging.SingleEmailMessage>();
             Map<Id, String> ownerHtmlMap = EmailHelper.setRecordLinkHtml(multipleRenewOpps, 'Multiple_Renew_Opps');
             for (id ownerId : ownerHtmlMap.keySet()) {
                 Messaging.SingleEmailMessage msg =  new Messaging.SingleEmailMessage();
+                msg.setTargetObjectId(ownerId);
+                msg.setSaveAsActivity(False);
+                msg.setCcAddresses(new List<String>{'salesops@goguardian.com'});
                 msg.setHtmlBody(ownerHtmlMap.get(ownerId));
                 messages.add(msg);     
             }
