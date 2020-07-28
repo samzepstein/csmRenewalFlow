@@ -1,0 +1,210 @@
+@isTest
+public class Test_BatchRenewalOpp_Execute {
+    @testSetup
+    public static void setupTests(){
+    
+
+        
+        Account testAccount1 = new Account(Name='Test Direct Account', 
+                                           Most_Recent_Channel__c='Direct');
+        
+        insert testAccount1;
+        
+        
+        Contact testContact1 = new Contact(FirstName='Test',
+                                           LastName='Admin',
+                                           Email='test@admin.com',
+                                           AccountId=testAccount1.Id);
+
+        insert testContact1;
+        
+                                           
+                                           
+        testAccount1.Most_Recent_Admin__c = testContact1.Id;
+        testAccount1.Most_Recent_AP_Contact__c = testContact1.Id;
+        testAccount1.Most_Recent_Reseller_Contact__c = testContact1.Id;                                   
+                                          
+        update testAccount1;
+    }
+    
+    public static testMethod void testDirect(){
+        
+        Account testAccount = [SELECT Id FROM Account WHERE Name ='Test Direct Account' LIMIT 1];
+        
+        Opportunity testOpp = new Opportunity(Name='Test Opp',
+                                              CloseDate=System.today(),
+                                              StageName='Closing',
+                                              AccountId=testAccount.Id,
+                                              Type='New');
+        insert testOpp;
+        
+        Opportunity testOppPricebook = [SELECT ID, Pricebook2Id FROM Opportunity LIMIT 1];
+        
+        Contract cont = new Contract();
+        cont.AccountId = testAccount.Id;
+        cont.SBQQ__Opportunity__c = testOpp.id;
+        cont.StartDate = System.today();
+        cont.EndDate = System.today() + 365;
+        //cont.SBQQ__Quote__c = quote.Id;
+        cont.ContractTerm = 12;
+        cont.Pricebook2Id = testOppPricebook.Pricebook2Id;
+        
+        INSERT cont;
+        
+        Database.executeBatch(new csmRenewalFlow(365));
+    }
+    
+    public static testMethod void testIndirect(){
+        
+        Account testAccount = [SELECT Id, Most_Recent_Reseller_Contact__c, Most_Recent_Channel__c FROM Account WHERE Name ='Test Direct Account' LIMIT 1];
+        
+        testAccount.Most_Recent_Channel__c = 'Indirect';
+        
+        update testAccount;
+        
+        Opportunity testOpp = new Opportunity(Name='Test Opp',
+                                              CloseDate=System.today(),
+                                              StageName='Closing',
+                                              AccountId=testAccount.Id,
+                                              Type='New');
+        insert testOpp;
+        
+        Opportunity testOppPricebook = [SELECT ID, Pricebook2Id FROM Opportunity LIMIT 1];
+        
+        Contract cont = new Contract();
+        cont.AccountId = testAccount.Id;
+        cont.SBQQ__Opportunity__c = testOpp.id;
+        cont.StartDate = System.today();
+        cont.EndDate = System.today() + 365;
+        //cont.SBQQ__Quote__c = quote.Id;
+        cont.ContractTerm = 12;
+        cont.Pricebook2Id = testOppPricebook.Pricebook2Id;
+        
+        INSERT cont;
+        
+
+        
+        Database.executeBatch(new csmRenewalFlow(365));        
+    }
+    
+    public static testMethod void testPreexistingRenewalOpp(){
+    
+    	Account testAccount = [SELECT Id FROM Account WHERE Name ='Test Direct Account' LIMIT 1];
+        
+        Opportunity renewalOpp = new Opportunity(Name='Renewal Opp',
+                                              CloseDate=System.today(),
+                                              StageName='Closing',
+                                              AccountId=testAccount.Id,
+                                              Type='Renewal');
+        
+        insert renewalOpp;
+        
+        Opportunity testOppPricebook = [SELECT ID, Pricebook2Id FROM Opportunity  LIMIT 1];
+        
+
+        
+        Opportunity testOpp = new Opportunity(Name='Test Opp',
+                                              CloseDate=System.today(),
+                                              StageName='Closing',
+                                              AccountId=testAccount.Id,
+                                              Type='New');
+        
+        
+        insert testOpp;
+        
+        
+        Contract cont2 = new Contract();
+        cont2.AccountId = testAccount.Id;
+        cont2.SBQQ__Opportunity__c = testOpp.id;
+        cont2.StartDate = System.today();
+        cont2.EndDate = System.today() + 365;
+        //cont.SBQQ__Quote__c = quote.Id;
+        cont2.ContractTerm = 12;
+        cont2.Pricebook2Id = testOppPricebook.Pricebook2Id;
+        cont2.SBQQ__RenewalOpportunity__c = renewalOpp.Id;
+        
+        INSERT cont2;
+        
+        Database.executeBatch(new csmRenewalFlow(365));
+        
+	}      
+    
+    public static testMethod void testMultipleRenewalOpp(){
+        
+        Account testAccount = [SELECT Id FROM Account WHERE Name ='Test Direct Account' LIMIT 1];
+        
+        List<Opportunity> oppList = new List<Opportunity>();
+        
+       
+        
+        Opportunity renewalOpp1 = new Opportunity(Name='Renewal Opp',
+                                              CloseDate=System.today(),
+                                              StageName='Closing',
+                                              AccountId=testAccount.Id,
+                                              Type='Renewal');
+        oppList.add(renewalOpp1);
+        
+        
+        Opportunity renewalOpp2 = new Opportunity(Name='Renewal Opp 2',
+                                              CloseDate=System.today() - 44,
+                                              StageName='Closing',
+                                              AccountId=testAccount.Id,
+                                              Type='Renewal');
+        
+        oppList.add(renewalOpp2);
+        
+        
+        Opportunity testOpp = new Opportunity(Name='Test Opp',
+                                              CloseDate=System.today(),
+                                              StageName='Closing',
+                                              AccountId=testAccount.Id,
+                                              Type='New');
+        
+        oppList.add(testOpp);
+        
+        insert oppList;
+        
+        
+        
+        
+        Opportunity testOppPricebook = [SELECT ID, Pricebook2Id FROM Opportunity  LIMIT 1];
+        
+        List<Contract> contList = new List<Contract>();
+        
+        Contract cont = new Contract();
+        cont.AccountId = testAccount.Id;
+        cont.SBQQ__Opportunity__c = testOpp.id;
+        cont.StartDate = System.today() - 365;
+        cont.EndDate = System.today();
+        //cont.SBQQ__Quote__c = quote.Id;
+        cont.ContractTerm = 12;
+        cont.Pricebook2Id = testOppPricebook.Pricebook2Id;
+        cont.SBQQ__RenewalOpportunity__c = renewalOpp1.Id;
+        
+        contList.add(cont);
+        
+        
+        
+        
+        Contract cont2 = new Contract();
+        cont2.AccountId = testAccount.Id;
+        cont2.SBQQ__Opportunity__c = testOpp.id;
+        cont2.StartDate = System.today();
+        cont2.EndDate = System.today() + 365;
+        //cont.SBQQ__Quote__c = quote.Id;
+        cont2.ContractTerm = 12;
+        cont2.Pricebook2Id = testOppPricebook.Pricebook2Id;
+        cont2.SBQQ__RenewalOpportunity__c = renewalOpp1.Id;
+
+        
+        contList.add(cont2);
+        
+        insert contList;
+        
+        Database.executeBatch(new csmRenewalFlow(365));
+        
+        
+        
+        
+    }
+}
