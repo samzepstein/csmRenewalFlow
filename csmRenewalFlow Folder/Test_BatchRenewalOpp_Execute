@@ -51,7 +51,7 @@ public class Test_BatchRenewalOpp_Execute {
         
         INSERT cont;
         
-        Database.executeBatch(new csmRenewalFlow(365));
+        Database.executeBatch(new BatchRenewalOpp(365));
     }
     
     public static testMethod void testIndirect(){
@@ -84,7 +84,7 @@ public class Test_BatchRenewalOpp_Execute {
         
 
         
-        Database.executeBatch(new csmRenewalFlow(365));        
+        Database.executeBatch(new BatchRenewalOpp(365));        
     }
     
     public static testMethod void testPreexistingRenewalOpp(){
@@ -137,7 +137,7 @@ public class Test_BatchRenewalOpp_Execute {
         
         INSERT cont2;
         
-        Database.executeBatch(new csmRenewalFlow(365));
+        Database.executeBatch(new BatchRenewalOpp(365));
         
 	}      
     
@@ -213,7 +213,7 @@ public class Test_BatchRenewalOpp_Execute {
         
         insert contList;
         
-        Database.executeBatch(new csmRenewalFlow(365));
+        Database.executeBatch(new BatchRenewalOpp(365));
         
         
         
