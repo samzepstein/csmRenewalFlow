@@ -1,26 +1,111 @@
 @isTest
-private class BatchRenewalQuoteLineTest {
+public class Test_BatchRenewalQuoteLine {
+
+    @testSetup
+    public static void setupTests(){
+        
+        
+        
+        //account
+        Account testAccount1 = new Account(Name='Test Direct Account', Org_Id__c = '1111');
+        
+        insert testAccount1;
+        
+        //Contact
+        Contact testContact1 = new Contact();
+        testContact1.FirstName = 'testFirst'; 
+        testContact1.LastName = 'testLast'; 
+        testContact1.AccountId = testAccount1.Id;
+        
+        INSERT testContact1;
+        
+        //opp
+        Opportunity testOpp = new Opportunity(Name='Test Opp',
+                                              CloseDate=System.today(),
+                                              StageName='Purchase',
+                                              AccountId=testAccount1.Id,
+                                              Amount = 100,
+                                              Type='New');
+        insert testOpp;
+
+        
+    }
+
     
-     BatchRenewalQuoteLine job = new BatchRenewalQuoteLine();
+    public static testMethod void testMethod1(){
+        
+        Set<Id> quoteIds = new Set<Id>();
+        
+        Opportunity testOpp = [SELECT Id, AccountId FROM Opportunity LIMIT 1];
+        
+        SBQQ__Quote__c quote = new SBQQ__Quote__c();
+        
+        quote.SBQQ__Primary__c = True;
+        quote.SBQQ__Opportunity2__c = testOpp.id;
+        quote.SBQQ__Status__c = 'Accepted';
+        quote.SBQQ__Account__c = testOpp.AccountId;
+        quote.SBQQ__EndDate__c = system.today() + 365;
+
+        
+        insert quote;
+        
+        
+        //add product
+        Product2 product = new Product2();
+        
+        
+        product.Name = 'GoGuardian Suite';
+        product.ProductCode = 'GG-STE';
+
+        
+		insert product;        
+        
+        
+        //add suite quote line
+        //
+        
+        List<SBQQ__QuoteLine__c> quoteList  = new List<SBQQ__QuoteLine__c>();
+       
+        SBQQ__QuoteLine__c suiteQuoteLine = new SBQQ__QuoteLine__c();
+        
+        suiteQuoteLine.SBQQ__Quote__c = quote.Id;
+        suiteQuoteLine.SBQQ__EndDate__c = quote.SBQQ__EndDate__c;
+        suiteQuoteLine.SBQQ__RequiredBy__c = NULL;
+        suiteQuoteLine.SBQQ__Product__c = product.id;
+        suiteQuoteLine.Deal_Type__c = 'New';
+        
+        quoteList.add(suiteQuoteLine);
+
+        
+        //add quote line
+		SBQQ__QuoteLine__c quoteLine = new SBQQ__QuoteLine__c();
+        
+        quoteLine.SBQQ__Quote__c = quote.Id;
+        quoteLine.SBQQ__EndDate__c = quote.SBQQ__EndDate__c;
+        quoteLine.SBQQ__RequiredBy__c = suiteQuoteLine.Id;
+        quoteLine.SBQQ__Product__c = product.id;
+        quoteLine.Deal_Type__c = 'New';
+        
+        quoteList.add(quoteLine);
+        
+
+        
+        insert quoteList;
+        
+  
+        
+        quoteIds.add(quote.Id);
+        
+        
+        Database.executeBatch(new BatchRenewalQuoteLine(quoteIds, 365));
+            
+
+        
+    }
     
-      @isTest static void createQuoteLine() {
-          
-          
-          Test.startTest();
-          
-          SBQQ__QuoteLine__c quoteLineBundle = new SBQQ__QuoteLine__c();
-          
-          //set product to Suite 24/7 to trigger isBundled? Field to 1
-		  quoteLineBundle.SBQQ__Product__c = '01t4N00000473wXQAQ'; 
-          
-          quoteLineBundle.Deal_Type__c = 'New';
-          
-          
-          
-          Database.executeBatch(job);
-          Test.stopTest();
-          
-          
-      }
+    
+    
+    
+    
     
 }
