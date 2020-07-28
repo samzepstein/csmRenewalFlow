@@ -112,16 +112,28 @@ public class Test_BatchRenewalOpp_Execute {
         
         insert testOpp;
         
+        List<Contract> contracts = new List<Contract>();
+        
+        Contract cont1 = new Contract();
+        cont1.AccountId = testAccount.Id;
+        cont1.SBQQ__Opportunity__c = testOpp.id;
+        cont1.StartDate = System.today();
+        cont1.EndDate = System.today() + 365;
+        cont1.ContractTerm = 12;
+        cont1.Pricebook2Id = testOppPricebook.Pricebook2Id;
+        cont1.SBQQ__RenewalOpportunity__c = renewalOpp.Id;
+        
+        contracts.add(cont1);
         
         Contract cont2 = new Contract();
         cont2.AccountId = testAccount.Id;
         cont2.SBQQ__Opportunity__c = testOpp.id;
         cont2.StartDate = System.today();
         cont2.EndDate = System.today() + 365;
-        //cont.SBQQ__Quote__c = quote.Id;
         cont2.ContractTerm = 12;
         cont2.Pricebook2Id = testOppPricebook.Pricebook2Id;
-        cont2.SBQQ__RenewalOpportunity__c = renewalOpp.Id;
+        
+        contracts.add(cont2);
         
         INSERT cont2;
         
@@ -174,12 +186,12 @@ public class Test_BatchRenewalOpp_Execute {
         Contract cont = new Contract();
         cont.AccountId = testAccount.Id;
         cont.SBQQ__Opportunity__c = testOpp.id;
-        cont.StartDate = System.today() - 365;
-        cont.EndDate = System.today();
+        cont.StartDate = System.today();
+        cont.EndDate = System.today() + 365;
         //cont.SBQQ__Quote__c = quote.Id;
         cont.ContractTerm = 12;
         cont.Pricebook2Id = testOppPricebook.Pricebook2Id;
-        cont.SBQQ__RenewalOpportunity__c = renewalOpp1.Id;
+        cont.SBQQ__RenewalOpportunity__c = renewalOpp2.Id;
         
         contList.add(cont);
         
