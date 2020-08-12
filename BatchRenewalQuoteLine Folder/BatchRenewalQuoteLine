@@ -27,7 +27,7 @@ Database.Batchable<SObject>, Database.Stateful {
     global void execute(Database.BatchableContext bc, List<SBQQ__Quote__c> scope){
         
         system.debug('scope: ' + scope);
-
+        
         
         try{
             
@@ -44,7 +44,7 @@ Database.Batchable<SObject>, Database.Stateful {
             // 7. use a for loop to pull out the account Ids from the list of quotes that are in the scope of the execute method. It should be a 1:1 relationship between accounts and quotes.
             for (SBQQ__Quote__c quote : scope){
                 
-        		System.debug('BundleQuoteLine Quote: '+quote);
+                System.debug('BundleQuoteLine Quote: '+quote);
                 
                 if(quote != Null){
                     Id acctId = quote.SBQQ__Account__c;
@@ -76,14 +76,14 @@ Database.Batchable<SObject>, Database.Stateful {
             Map<Id, Decimal> acctQuoteTermMap = new Map<Id, Decimal>();
             
             system.debug('quoteTermAggregate: ' + quoteTermAggregate);
-           
+            
             
             for(AggregateResult arg : quoteTermAggregate) {
                 
                 system.debug(arg);
                 
                 acctQuoteTermMap.put((Id)arg.get('AccountId'), (Decimal)arg.get('maxYEAR'));
-
+                
                 
                 
                 
@@ -115,7 +115,7 @@ Database.Batchable<SObject>, Database.Stateful {
                 
                 quoteLine.SBQQ__Quantity__c = (Decimal)ar.get('sum');
                 quoteLine.SBQQ__Product__c  = (Id)ar.get('SBQQ__Product__c');
-                quoteLine.Deal_Type__c = 'New';
+                quoteLine.Deal_Type__c = 'Renewal';
                 
                 Id accntId = (Id)ar.get('AccountId');
                 
@@ -140,11 +140,20 @@ Database.Batchable<SObject>, Database.Stateful {
                     
                     bundleQuoteLines.add(quoteLine);
                     
+                    
+                    
                 }
                 
                 
                 // 9b. Add the quoteline to a list to be inserted
+                
                 quoteLinesList.add(quoteLine);
+                
+                
+                
+                
+                
+                
                 
                 
             }
@@ -152,7 +161,11 @@ Database.Batchable<SObject>, Database.Stateful {
             
             // 10. Insert the main list of quote lines
             insert quoteLinesList;
+            
+            
+            
             SBQQ.TriggerControl.enable();
+            
             
             
         }
@@ -168,16 +181,24 @@ Database.Batchable<SObject>, Database.Stateful {
     
     
     
-    
     // 11. In the finish method, we want to call the next batch class to create the bundle components. 
     global void finish(Database.BatchableContext bc){
         
-        BatchRenewalQuoteLineBundles brqlb = new BatchRenewalQuoteLineBundles(bundleQuoteLines, daysBeforeRenew) ;
+        if(bundleQuoteLines.size() > 0){
+            
+            BatchRenewalQuoteLineBundles brqlb = new BatchRenewalQuoteLineBundles(bundleQuoteLines, daysBeforeRenew, quoteIds);
+            database.executeBatch(brqlb);
+            
+        }
         
-        
-        
-        
-        
+        else{
+            
+            system.debug('yay');
+            
+            //BatchRenewalQuoteCalculate brqc = new BatchRenewalQuoteCalculate(quoteIds, TRUE);
+            //system.scheduleBatch(brqc, 'Batch Renewal Calculate', 1, 1);
+            
+        }
     }
     
     
