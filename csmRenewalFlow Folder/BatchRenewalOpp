@@ -26,7 +26,7 @@ global class BatchRenewalOpp implements Database.Batchable<SObject>, Database.St
              'BillingStreet, BillingCity, BillingState, Most_Recent_Channel__c,'+
              'Most_Recent_Reseller__c, Most_Recent_Reseller_Contact__c, Most_Recent_Admin__c FROM Account LIMIT 1' : 'SELECT ID, Name, Most_Recent_AP_Contact__c, OwnerId, Contract_End_Date_Count__c, Max_Contract_End__c, CSM__c,'+
              'BillingStreet, BillingCity, BillingState, Most_Recent_Channel__c,'+
-             'Most_Recent_Reseller__c, Most_Recent_Admin__c FROM Account '+
+             'Most_Recent_Reseller__c, Most_Recent_Reseller_Contact__c, Most_Recent_Admin__c FROM Account '+
              'WHERE Contract_End_Date_Count__c = 1 AND Max_Contract_End__c = :dte';
                 
         return Database.getQueryLocator(query);
