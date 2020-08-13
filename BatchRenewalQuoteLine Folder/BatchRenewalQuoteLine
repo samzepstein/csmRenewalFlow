@@ -66,6 +66,7 @@ Database.Batchable<SObject>, Database.Stateful {
             List<AggregateResult> quoteTermAggregate = [SELECT SBQQ__Quote__r.SBQQ__Opportunity2__r.AccountId, MAX(Subscription_Term_in_yr__c) maxYEAR
                                                         FROM SBQQ__QuoteLine__c 
                                                         WHERE SBQQ__EndDate__c = :endDate
+                                                        AND SBQQ__SubscriptionType__c = 'Renewable'
                                                         AND SBQQ__Quote__r.SBQQ__Opportunity2__r.AccountId IN :quoteMap.keySet()
                                                         AND SBQQ__RequiredBy__c = NULL 
                                                         AND SBQQ__Quote__r.SBQQ__Status__c = 'Accepted' 
@@ -93,6 +94,7 @@ Database.Batchable<SObject>, Database.Stateful {
             List<AggregateResult> aggregateList = [SELECT SBQQ__Quote__r.SBQQ__Opportunity2__r.AccountId, MAX(isBundled__c) maxBundle, SBQQ__Product__c, MIN(SBQQ__Quote__r.SBQQ__Account__r.Sales_Discount__c) mindisc, SUM(SBQQ__Quantity__c) sum 
                                                    FROM SBQQ__QuoteLine__c 
                                                    WHERE SBQQ__Quote__r.SBQQ__Opportunity2__r.AccountId IN :quoteMap.keySet()
+                                                   AND SBQQ__SubscriptionType__c = 'Renewable'
                                                    AND SBQQ__EndDate__c = :endDate 
                                                    AND SBQQ__RequiredBy__c = NULL 
                                                    AND SBQQ__Quote__r.SBQQ__Status__c = 'Accepted' 
