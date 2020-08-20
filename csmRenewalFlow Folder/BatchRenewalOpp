@@ -124,7 +124,7 @@ global class BatchRenewalOpp implements Database.Batchable<SObject>, Database.St
                 when 1 {
                     Id oppId = (new List<Id>(renewalOppIds))[0];
                     //add existing reenwal oppId to oppIds list
-                    oppIds.add(oppId);
+                    //oppIds.add(oppId);
                     for(Contract cont : acctContracts){
                         if(cont.SBQQ__RenewalOpportunity__c != oppId){
                             cont.SBQQ__RenewalOpportunity__c = oppId;
@@ -183,7 +183,9 @@ global class BatchRenewalOpp implements Database.Batchable<SObject>, Database.St
             
         }
         
-        Database.executeBatch(new BatchRenewalQuote(new List<Id>(oppIds), daysBeforeRenew));
+        BatchRenewalQuote job = new BatchRenewalQuote(new List<Id>(oppIds), daysBeforeRenew);
+        Database.executeBatch(job, 1);
+    
 		
         
         
