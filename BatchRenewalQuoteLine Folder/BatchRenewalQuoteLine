@@ -66,7 +66,7 @@ Database.Batchable<SObject>, Database.Stateful {
             List<AggregateResult> quoteTermAggregate = [SELECT SBQQ__Quote__r.SBQQ__Opportunity2__r.AccountId, MAX(Subscription_Term_in_yr__c) maxYEAR
                                                         FROM SBQQ__QuoteLine__c 
                                                         WHERE SBQQ__EndDate__c = :endDate
-                                                        AND SBQQ__SubscriptionType__c = 'Renewable'
+                                                        AND SBQQ__Product__r.SBQQ__SubscriptionType__c = 'Renewable'
                                                         AND SBQQ__Quote__r.SBQQ__Opportunity2__r.AccountId IN :quoteMap.keySet()
                                                         AND SBQQ__RequiredBy__c = NULL 
                                                         AND SBQQ__Quote__r.SBQQ__Status__c = 'Accepted' 
@@ -87,20 +87,22 @@ Database.Batchable<SObject>, Database.Stateful {
                 
                 
                 
-                
             }
             
             
-            List<AggregateResult> aggregateList = [SELECT SBQQ__Quote__r.SBQQ__Opportunity2__r.AccountId, MAX(isBundled__c) maxBundle, SBQQ__Product__c, MIN(SBQQ__Quote__r.SBQQ__Account__r.Sales_Discount__c) mindisc, SUM(SBQQ__Quantity__c) sum 
+           List<AggregateResult> aggregateList = [SELECT SBQQ__Quote__r.SBQQ__Opportunity2__r.AccountId, MAX(isBundled__c) maxBundle, SBQQ__Product__c, MIN(SBQQ__Quote__r.SBQQ__Account__r.Sales_Discount__c) mindisc, SUM(SBQQ__Quantity__c) sum 
                                                    FROM SBQQ__QuoteLine__c 
                                                    WHERE SBQQ__Quote__r.SBQQ__Opportunity2__r.AccountId IN :quoteMap.keySet()
-                                                   AND SBQQ__SubscriptionType__c = 'Renewable'
+                                                   AND SBQQ__Product__r.SBQQ__SubscriptionType__c = 'Renewable'
                                                    AND SBQQ__EndDate__c = :endDate 
-                                                   AND SBQQ__RequiredBy__c = NULL 
+                                                   AND (NOT SBQQ__RequiredBy__r.SBQQ__Product__r.Name LIKE '%Suite%')
+                                                   AND (NOT SBQQ__Product__r.Name LIKE '%Bundle%')
                                                    AND SBQQ__Quote__r.SBQQ__Status__c = 'Accepted' 
                                                    AND SBQQ__Quote__r.SBQQ__Opportunity2__r.StageName = 'Purchase' 
                                                    AND SBQQ__Quote__r.SBQQ__Opportunity2__r.Returned_or_CM__c = FALSE 
                                                    GROUP BY SBQQ__Quote__r.SBQQ__Opportunity2__r.AccountId, SBQQ__Product__c];
+            
+
             
             
             system.debug('aggregateList: ' +aggregateList);
@@ -189,7 +191,7 @@ Database.Batchable<SObject>, Database.Stateful {
         if(bundleQuoteLines.size() > 0){
             
             BatchRenewalQuoteLineBundles brqlb = new BatchRenewalQuoteLineBundles(bundleQuoteLines, daysBeforeRenew, quoteIds);
-            database.executeBatch(brqlb);
+            database.executeBatch(brqlb, 1);
             
         }
         
