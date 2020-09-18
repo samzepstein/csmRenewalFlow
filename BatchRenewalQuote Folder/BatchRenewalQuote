@@ -36,6 +36,9 @@ Database.Batchable<SObject>, Database.Stateful {
         
         List<SBQQ__Quote__c> quoteList = new List<SBQQ__Quote__c>();
         
+        Map<Id,Opportunity> oppMap = new Map<Id,Opportunity>(scope);
+        
+        
         try{
             SBQQ.TriggerControl.disable();
             
@@ -51,7 +54,7 @@ Database.Batchable<SObject>, Database.Stateful {
                 quote.SBQQ__Status__c = 'Draft';
                 quote.SBQQ__Account__c = opp.AccountId;
                 quote.SBQQ__Type__c = 'Renewal';
-                //quote.Recalculate__c = TRUE;
+                quote.Created_by_csmRenewalFlow__c  = TRUE;
                 
                 if (opp.Channel__c == 'Direct'){
                     quote.Price_List__c = 'Direct';
@@ -66,6 +69,8 @@ Database.Batchable<SObject>, Database.Stateful {
                     
                 }
                 
+                
+                
                 system.debug('quote.Partner_Rep__c: '+ opp.QuotePrimaryPartner__c);
                 
                 system.debug('quote.SBQQ__Partner__c: '+ quote.Partner_Rep__c);
@@ -76,7 +81,6 @@ Database.Batchable<SObject>, Database.Stateful {
                 
                 system.debug('quote.SBQQ__Status__c' + quote.SBQQ__Status__c);
                 
-                //oppIdQuoteMap.put(opp.Id, quote);
                 
                 // 8. Add to the quote list
                 quoteList.add(quote);
@@ -84,6 +88,27 @@ Database.Batchable<SObject>, Database.Stateful {
             
             // 9. After a quote has been created for each opp, insert the list          
             insert quoteList;
+            
+            /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+            
+            List<Opportunity> primaryQuoteOpps = new List<Opportunity>();
+            
+            for(SBQQ__Quote__c qte : quoteList){
+                Opportunity opp = oppMap.get(qte.SBQQ__Opportunity2__c);
+                opp.SBQQ__PrimaryQuote__c = qte.Id;
+                primaryQuoteOpps.add(opp);
+                
+            }
+            
+            update primaryQuoteOpps;
+            
+            
+            
+            
+            /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+            
+            
+            
             
             SBQQ.TriggerControl.enable();
             
