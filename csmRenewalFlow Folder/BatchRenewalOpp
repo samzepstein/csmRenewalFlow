@@ -54,6 +54,7 @@ global class BatchRenewalOpp implements Database.Batchable<SObject>, Database.St
         opp.OwnerId = acct.CSM__c == Null ? acct.OwnerId : acct.CSM__c;
         opp.Admin_Contact__c =acct.Most_Recent_Admin__c;
         opp.Channel__c = channel;
+        opp.Has_Order__c = FALSE;
         if(channel == 'Direct'){
             opp.AP_Contact__c = acct.Most_Recent_AP_Contact__c;
         }
